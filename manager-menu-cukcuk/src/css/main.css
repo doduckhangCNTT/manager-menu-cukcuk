@@ -1,0 +1,64 @@
+body {
+  font-family: 'Tahoma', Geneva, sans-serif;
+}
+
+* {
+  font-size: var(--font-size-text);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  outline: none;
+}
+
+:root {
+  --color-primary: #0072bc;
+
+  /* ##### -- Hover -- #####  */
+  --color-btn-hover-primary: #0072bc;
+  --color-navbar-hover-primary: #eb7728;
+  --color-table-row-hover-primary: #d7e9f4;
+
+  /* ##### -- Border -- #####  */
+  --border-radius-primary: 2px;
+  --color-border-default: #ccc;
+  --color-border-blue-default: #0072bc;
+  --color-border-error: #cf4c35;
+
+  /* ##### -- Text -- #####  */
+  --font-size-text: 14px;
+  --font-size-text-title: 22px;
+  --font-size-text-subTitle: 18px;
+  --color-text: #000;
+  --color-text-white: #fff;
+  --color-text-subtext: #848484;
+  --color-text-placeholder: #b1b1b1;
+  /* Lable / Disable / SmallText */
+  --color-text-label: #757575;
+  --color-text-required: red;
+
+  /* Background */
+  --background-color-table-primary: #ededed;
+  --color-bg-green-primary: #e4f2ea;
+  --background-color-dialog-form: #0072bc;
+  --background-color-dialog-form-wrapper-body: #fff;
+  --font-weight-primary: 500;
+
+  /* Combobox */
+  --height-combobox: 200px;
+  --height-combobox-top: -200px;
+
+  /* Kích thước chiều cao cho mỗi thành phần */
+  /* --- Table --- */
+  --height-header-primary: 55px;
+  --height-main-top-title: 50px;
+  --height-main-toolbar-table: 32px;
+  --height-main-footer-table: 38px;
+  --height-dialog-table-service: 197px;
+  /* --- Dialog Form --- */
+  --height-header-dialogForm: 29px;
+  --width-dialogForm: 750px;
+
+  /* Z-index */
+  --zIndex-dialog-form-info: 3;
+  --zIndex-table-menu-thead: 2;
+}
