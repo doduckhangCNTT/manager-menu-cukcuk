@@ -1,6 +1,7 @@
 <script>
 import MISAButton from '../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
+
 export default {
   name: 'TheMain',
   components: { MISAButton, Icon }

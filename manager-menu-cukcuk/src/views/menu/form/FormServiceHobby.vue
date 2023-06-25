@@ -3,16 +3,77 @@ import MISAButton from '../../../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
 export default {
   name: 'FormServiceHobby',
+  components: { MISAButton, Icon },
   data() {
-    return {}
+    return {
+      dataListServiceHobby: [{ serviceHobby: '', morePrice: '' }], // Dánh sách chứa các giá trị của dòng input trong bảng
+      selectIndexLine: 0 // Vị trí hiện tại trên dòng tương ứng (mặc định đang focus vào dòng đầu tiên)
+    }
   },
-  methods: {},
-  components: { MISAButton, Icon }
+  computed: {
+    /**
+     * - Thực hiện tạo điều kiện ẩn button xóa dòng
+     * - Author: DDKhang (22/6/2023)
+     */
+    isDisableBtnRemoveLine() {
+      const qualityItems = this.dataListServiceHobby.length
+      if (qualityItems <= 1) {
+        return true // Thực hiện ẩn
+      }
+      return false // Không thực hiện ẩn
+    }
+  },
+  methods: {
+    /**
+     * - Thực hiện thêm dòng sở thích phục vụ
+     * - Author: DDKhang (22/6/2023)
+     */
+    handleAddLineServiceHobby() {
+      this.dataListServiceHobby = [
+        ...this.dataListServiceHobby,
+        { serviceHobby: '', morePrice: '' }
+      ]
+    },
+
+    /**
+     * - Thực hiện xóa 1 dòng trong bảng sở thích phụ vụ
+     * - Author: DDKhang (22/6/2023)
+     */
+    handleRemoveLineServiceHobby() {
+      const dataList = [...this.dataListServiceHobby]
+      dataList.splice(this.selectIndexLine, 1)
+      this.dataListServiceHobby = dataList
+    },
+
+    /**
+     *
+     * @param {*} event - Sự kiện mặc định
+     * @param {*} index - Chỉ số thẻ input đang thay đổi
+     * - Thực hiện bắt sự thay đổi trên các thẻ input tương ứng
+     * - Author: DDKhang (22/6/2023)
+     */
+    handleChangeInput(event, index) {
+      const { value, name } = event.target
+      const dataList = [...this.dataListServiceHobby]
+      dataList[index][name] = value
+      this.dataListServiceHobby = dataList
+    },
+
+    /**
+     * @param {*} index - Chỉ số dòng hiện tại
+     * - Lấy chỉ số dòng hiện tại (đang nhấn vào)
+     * - Author: DDKhang (22/6/2023)
+     */
+    handleGetIndexLine(index) {
+      this.selectIndexLine = index
+    }
+  }
 }
 </script>
 
 <template>
   <div class="formService">
+    <!-- Ghi chú & giải thích cách thêm sở thích -->
     <div class="formService__info-attention">
       <p class="formService__info-attention-food">Món ăn:</p>
       <div class="formService__info-attention-serviceHobby">
@@ -42,24 +103,44 @@ export default {
 
       <!-- Nội dung bảng sở thích  -->
       <div class="formService__list-serviceByHobby-tbody">
-        <div class="formService__list-serviceByHobby-tbody-item" v-for="i in 10" :key="i">
+        <div
+          class="formService__list-serviceByHobby-tbody-item"
+          v-for="(itemServiceHobby, index) in dataListServiceHobby"
+          :key="index"
+          @click="handleGetIndexLine(index)"
+        >
           <div
             class="formItem-value formService__list-serviceByHobby-tbody-item-col-one border-right"
           >
-            Value 1
+            <input
+              type="text"
+              name="serviceHobby"
+              :value="itemServiceHobby.serviceHobby"
+              @input="(event) => handleChangeInput(event, index)"
+            />
           </div>
           <div class="formItem-value formService__list-serviceByHobby-tbody-item-col-two">
-            Value 2
+            <input
+              type="text"
+              name="morePrice"
+              :value="itemServiceHobby.morePrice"
+              @input="(event) => handleChangeInput(event, index)"
+            />
           </div>
         </div>
       </div>
     </div>
     <div class="formService__listBtn">
-      <MISAButton class="formService__panelBtn button px-3 py-10"
+      <MISAButton class="formService__panelBtn button px-3 py-10" @click="handleAddLineServiceHobby"
         ><Icon icon="zondicons:add-solid" color="#0072bc" width="18" height="18" />
         <span>{{ this.$ResourceDialogForm.Button.btnAddLine }}</span>
       </MISAButton>
-      <MISAButton class="formService__panelBtn button px-3 py-10">
+      <MISAButton
+        :class="`formService__panelBtn button px-3 py-10 ${
+          this.isDisableBtnRemoveLine ? 'disable-btn' : ''
+        } }`"
+        @click="handleRemoveLineServiceHobby"
+      >
         <Icon icon="mingcute:close-fill" color="red" width="20" height="20" />
         <span>{{ this.$ResourceDialogForm.Button.btnRemoveLine }}</span>
       </MISAButton>
@@ -102,6 +183,7 @@ export default {
   position: relative;
   height: var(--height-dialog-table-service);
   overflow: auto;
+  margin-top: 10px;
 }
 .formService__list-serviceByHobby-thead {
   display: flex;
@@ -125,6 +207,9 @@ export default {
 }
 .formService__list-serviceByHobby-tbody-item:is(:first-child) {
   border-top: none;
+}
+.formService__list-serviceByHobby-tbody-item:is(:last-child) {
+  border-bottom: 1px solid var(--color-border-default);
 }
 .formService__list-serviceByHobby-tbody-item:hover {
   background-color: var(--color-table-row-hover-primary);
@@ -179,8 +264,23 @@ export default {
 }
 
 .formItem-value {
-  padding: 5px 10px;
+  // padding: 5px 10px;
   width: 50%;
+}
+
+.formItem-value input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  height: 28px;
+}
+
+.disable-btn {
+  opacity: 0.3;
+  background-color: var(--background-disable);
+  border: 1px solid var(--color-border-default);
+  pointer-events: none;
 }
 </style>
 <!-- w-1-2 h-28 text-height-center border-right border-bottom -->

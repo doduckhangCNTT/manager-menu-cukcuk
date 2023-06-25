@@ -11,6 +11,10 @@ import ResourceNavbar from './resources/resource/ResourceNavbar'
 import ResourceToolbarTable from './resources/resource/ResourceToolbarTable'
 import EmitterEnum from './resources/enums/EmitterEnum'
 import ResourceDialogForm from './resources/resource/ResourceDialogForm'
+import MagicNumberEnum from './resources/enums/MagicNumberEnum'
+import TypeFilterEnum from './resources/enums/TypeFilterEnum'
+import TypeBtnDialogEnum from './resources/enums/TypeBtnDialogEnum'
+import TypeToolbarBtnEnum from './resources/enums/TypeToolbarBtnEnum'
 
 const app = createApp(App)
 
@@ -28,6 +32,10 @@ globalProps.$EmitterEnum = EmitterEnum
 globalProps.$ResourceNavbar = ResourceNavbar
 globalProps.$ResourceToolbarTable = ResourceToolbarTable
 globalProps.$ResourceDialogForm = ResourceDialogForm
+globalProps.$MagicNumber = MagicNumberEnum
+globalProps.$TypeFilterEnum = TypeFilterEnum
+globalProps.$TypeBtnDialogEnum = TypeBtnDialogEnum
+globalProps.$TypeToolbarBtnEnum = TypeToolbarBtnEnum
 
 app.mount('#app')
 

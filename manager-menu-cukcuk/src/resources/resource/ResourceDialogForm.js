@@ -10,8 +10,6 @@ const ResourceDialogForm = {
   TitleTab: {
     commonInfo: 'Thông tin chung',
     serviceHobby: 'Sở thích phục vụ',
-    materialQuantification: 'Định lượng nguyên vật liệu',
-    pricePolicy: 'Chính sách giá bán',
     noContent: 'Không có nội dung'
   }
 }

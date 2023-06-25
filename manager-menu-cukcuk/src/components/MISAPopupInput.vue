@@ -1,17 +1,38 @@
 <script>
+import MISAInput from './MISAInput.vue'
+import MISAPopup from './MISAPopup.vue'
+
 export default {
-  name: 'MISAPopupInput'
+  name: 'MISAPopupInput',
+  components: { MISAInput, MISAPopup },
+  data() {
+    return {}
+  },
+  methods: {
+    handleCustomClassFilterCombobox() {
+      return {
+        hiddenArrow: 'hidden-arrow',
+        widthInput: 'width-28',
+        heightInput: 'height-28',
+        widthPopup: 'width-150'
+      }
+    },
+
+    handleChooseRecord(item) {
+      console.log('Item: ', item)
+    }
+  }
 }
 </script>
 
 <template>
   <div class="popupInput">
     <div class="popupInput-popup">
-      <button class="popupInput-popup-button">+</button>
-      <div class="popupInput-popup-content"></div>
+      <MISAPopup :handleChooseRecord="handleChooseRecord" />
     </div>
     <div class="popupInput-input">
-      <input type="text" />
+      <!-- <input type="text" /> -->
+      <MISAInput class="w-150" />
     </div>
   </div>
 </template>
@@ -43,5 +64,10 @@ export default {
   height: 100%;
   border: 1px solid var(--color-border-default);
   border-radius: 0 var(--border-radius-primary) var(--border-radius-primary) 0;
+}
+
+// Tiện ích thêm
+.w-150 {
+  width: 150px;
 }
 </style>

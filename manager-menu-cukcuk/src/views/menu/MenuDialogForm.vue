@@ -8,20 +8,75 @@ import FormServiceHobby from './form/FormServiceHobby.vue'
 
 export default {
   name: 'MenuDialogForm',
-  components: { TabWrapper, TabItem, MISAButton, Icon, FormMenuDetail, FormServiceHobby }
+  components: {
+    TabWrapper,
+    TabItem,
+    MISAButton,
+    Icon,
+    FormMenuDetail,
+    FormServiceHobby
+  },
+  data() {
+    return {
+      objDialog: {
+        titleDialog: 'CUKCUK-Quản lí nhà hàng',
+        contentDialog: 'Nội dụng thông báo Nội dụng thông báoNội dụng thông báo',
+        iconContent: {
+          name: 'ph:question-fill',
+          color: '#0072bc'
+        },
+        isBtnHave: true,
+        isBtnNo: true,
+        isBtnCancel: false,
+        isBtnAgree: false
+      }
+    }
+  },
+  methods: {
+    /**
+     * Chuyển hướng sang trang mà hình chính
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleRedirectHome() {
+      this.$router.push('/menu')
+    },
+
+    handleChooseBtnPanelOnDialog(typeBtn) {
+      switch (typeBtn) {
+        case this.$TypeBtnDialogEnum.Have:
+          break
+        case this.$TypeBtnDialogEnum.No:
+          break
+        case this.$TypeBtnDialogEnum.Cancel:
+          break
+        case this.$TypeBtnDialogEnum.Agree:
+          break
+      }
+    }
+  }
 }
 </script>
 
 <template>
+  <!-- <MISADialog
+    :objDialog="this.objDialog"
+    :handleChooseBtnPanelOnDialog="handleChooseBtnPanelOnDialog"
+  >
+  </MISADialog> -->
+
   <div class="dialog-form-menu">
     <div class="dialog-form-menu__wrapper">
+      <!-- Header form -->
       <div class="dialog-form-menu__wrapper-header">
         <div class="dialog-form-menu__wrapper-header-title">Thêm món</div>
-        <div class="dialog-form-menu__wrapper-header-iconClose">
+        <!-- Icon đóng form -->
+        <div class="dialog-form-menu__wrapper-header-iconClose" @click="handleRedirectHome">
           <Icon icon="carbon:close-filled" color="white" width="24" height="24" />
         </div>
       </div>
+      <!-- Nội dung form -->
       <div class="dialog-form-menu__wrapper-body">
+        <!-- Xử lí tab -->
         <div class="dialog-form-menu__wrapper-body-details">
           <TabWrapper class="dialog-form-menu__wrapper-body-details-tabs">
             <TabItem tabId="tab1" :titleTab="this.$ResourceDialogForm.TitleTab.commonInfo"

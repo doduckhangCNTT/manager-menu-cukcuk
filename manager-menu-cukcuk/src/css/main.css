@@ -17,6 +17,7 @@ body {
   --color-btn-hover-primary: #0072bc;
   --color-navbar-hover-primary: #eb7728;
   --color-table-row-hover-primary: #d7e9f4;
+  --color-input-primary: #fafafa
 
   /* ##### -- Border -- #####  */
   --border-radius-primary: 2px;
@@ -41,7 +42,11 @@ body {
   --color-bg-green-primary: #e4f2ea;
   --background-color-dialog-form: #0072bc;
   --background-color-dialog-form-wrapper-body: #fff;
+  --background-color-dialog-notification-body: #fff;
   --font-weight-primary: 500;
+  --background-disable: #fafafa;
+  --background-item-selected: #b3d1e4;
+  --background-active-menu: #0199fc;
 
   /* Combobox */
   --height-combobox: 200px;
@@ -57,8 +62,13 @@ body {
   /* --- Dialog Form --- */
   --height-header-dialogForm: 29px;
   --width-dialogForm: 750px;
+  /* --- Height input/combobox */
+  --height-input-primary: 30px; 
+  --width-popup-rightClick: 120px;
 
   /* Z-index */
-  --zIndex-dialog-form-info: 3;
   --zIndex-table-menu-thead: 2;
+  --zIndex-dialog-form-info: 3;
+  --zIndex-dialog-notification: 4;
+  --zIndex-popup-rightClick: 5;
 }

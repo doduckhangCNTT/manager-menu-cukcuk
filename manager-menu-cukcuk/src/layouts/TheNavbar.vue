@@ -29,7 +29,7 @@ export default {
         {
           title: this.$ResourceNavbar.NavbarHome.Report.title,
           tooltip: this.$ResourceNavbar.NavbarHome.Report.tooltip,
-          link: '/menu',
+          link: '/report',
           elementIcon: 'mdi:report-donut'
         },
         {
@@ -72,7 +72,7 @@ export default {
   <nav>
     <ul class="list-nav">
       <li class="nav-item" v-for="(navItem, index) in listNavbarItem" :key="index">
-        <router-link to="/" class="nav__navItem">
+        <router-link :to="navItem.link" class="nav__navItem">
           <div class="nav__navItem-icon">
             <Icon :icon="navItem.elementIcon" color="white" width="24" height="24" />
           </div>
@@ -120,5 +120,9 @@ nav {
 }
 
 .nav__navItem-title {
+}
+
+.router-link-active {
+  background-color: var(--background-active-menu);
 }
 </style>

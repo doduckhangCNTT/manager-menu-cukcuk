@@ -1,9 +1,10 @@
 <script>
 import MISAButton from '../../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
+import MISATooltip from '../../components/MISATooltip.vue'
 export default {
   name: 'MainListFooter',
-  components: { MISAButton, Icon }
+  components: { MISAButton, Icon, MISATooltip }
 }
 </script>
 
@@ -13,30 +14,44 @@ export default {
       <!-- Arrow Previous -->
       <div class="footer-panel__arrows footer-panel__arrow-previous">
         <div class="footer-panel__arrow-previous-firstPage">
-          <MISAButton
-            class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
-          >
-            <Icon
-              icon="ic:baseline-double-arrow"
-              color="#9e9e9e"
-              width="25"
-              height="25"
-              :horizontalFlip="true"
-            />
-          </MISAButton>
+          <MISATooltip positionTooltip="tooltip-top">
+            <template #tooltip-explain>
+              <MISAButton
+                class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
+              >
+                <Icon
+                  icon="ic:baseline-double-arrow"
+                  color="#9e9e9e"
+                  width="25"
+                  height="25"
+                  :horizontalFlip="true"
+                />
+              </MISAButton>
+            </template>
+            <template #tooltip-content>
+              <p>Trang đầu</p>
+            </template>
+          </MISATooltip>
         </div>
         <div class="footer-panel__arrow-previous-one">
-          <MISAButton
-            class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
-          >
-            <Icon
-              icon="fe:arrow-right"
-              color="#9e9e9e"
-              width="25"
-              height="25"
-              :horizontalFlip="true"
-            />
-          </MISAButton>
+          <MISATooltip positionTooltip="tooltip-top">
+            <template #tooltip-explain>
+              <MISAButton
+                class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
+              >
+                <Icon
+                  icon="fe:arrow-right"
+                  color="#9e9e9e"
+                  width="25"
+                  height="25"
+                  :horizontalFlip="true"
+                />
+              </MISAButton>
+            </template>
+            <template #tooltip-content>
+              <p>Trang tiếp</p>
+            </template>
+          </MISATooltip>
         </div>
       </div>
       <span class="footer-panel__separate"></span>
@@ -51,26 +66,46 @@ export default {
       <!-- Arrow Next -->
       <div class="footer-panel__arrows footer-panel__arrow-next">
         <div class="footer-panel__arrow-next-one">
-          <MISAButton
-            class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
-          >
-            <Icon icon="fe:arrow-right" color="#9e9e9e" width="25" height="25" />
-          </MISAButton>
+          <MISATooltip positionTooltip="tooltip-top">
+            <template #tooltip-explain>
+              <MISAButton
+                class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
+              >
+                <Icon icon="fe:arrow-right" color="#9e9e9e" width="25" height="25" />
+              </MISAButton>
+            </template>
+            <template #tooltip-content>Trang sau</template>
+          </MISATooltip>
         </div>
         <div class="footer-panel__arrow-next-lastPage">
-          <MISAButton
-            class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
-          >
-            <Icon icon="ic:baseline-double-arrow" color="#9e9e9e" width="25" height="25" />
-          </MISAButton>
+          <MISATooltip positionTooltip="tooltip-top">
+            <template #tooltip-explain>
+              <MISAButton
+                class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
+              >
+                <Icon icon="ic:baseline-double-arrow" color="#9e9e9e" width="25" height="25" />
+              </MISAButton>
+            </template>
+            <template #tooltip-content>
+              <p>Trang cuối</p>
+            </template>
+          </MISATooltip>
         </div>
       </div>
       <span class="footer-panel__separate"></span>
       <!-- Button Refresh -->
-      <MISAButton
-        class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
-        ><Icon icon="ic:sharp-refresh" color="#9e9e9e" width="25" height="25" />
-      </MISAButton>
+      <MISATooltip positionTooltip="tooltip-top">
+        <template #tooltip-explain>
+          <MISAButton
+            class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
+            ><Icon icon="ic:sharp-refresh" color="#9e9e9e" width="25" height="25" />
+          </MISAButton>
+        </template>
+        <template #tooltip-content>
+          <p>Tải lại</p>
+        </template>
+      </MISATooltip>
+
       <span class="footer-panel__separate"></span>
       <!-- Combobox choose quality records -->
       <div class="footer-panel__combobox-quality-record">Combobox</div>
