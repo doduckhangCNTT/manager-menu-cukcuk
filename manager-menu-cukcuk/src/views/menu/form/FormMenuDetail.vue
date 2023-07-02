@@ -4,60 +4,290 @@ import MISAInput from '../../../components/MISAInput.vue'
 
 import MISACombobox from '../../../components/MISACombobox.vue'
 import MISAButton from '../../../components/MISAButton.vue'
+import { filterInfoEntity, getDataById } from '../../../utils/FetchData'
 
 export default {
   name: 'FormMenuDetail',
   components: { Icon, MISAInput, MISACombobox, MISAButton },
+  props: {
+    food: {
+      type: Object
+    },
+    foodValue: {
+      type: Object
+    }
+  },
   data() {
     return {
-      optionsNumberRecord: [
+      optionsMenuGroupRecord: [
         {
           id: 1,
-          value: 10
+          value: 10,
+          typeCombobox: this.$TypeComboboxEnum.MenuGroup
         },
         {
           id: 2,
-          value: 15
+          value: 15,
+          typeCombobox: this.$TypeComboboxEnum.MenuGroup
         },
         {
           id: 3,
-          value: 20
-        },
-        {
-          id: 4,
-          value: 30
-        },
-        {
-          id: 5,
-          value: 40
-        },
-        {
-          id: 6,
-          value: 50
-        },
-        {
-          id: 7,
-          value: 60
-        },
-        {
-          id: 8,
-          value: 70
-        },
-        {
-          id: 9,
-          value: 80
+          value: 20,
+          typeCombobox: this.$TypeComboboxEnum.MenuGroup
         }
-      ]
+      ],
+      optionsFoodUnitRecord: [
+        {
+          id: 1,
+          value: 10,
+          typeCombobox: this.$TypeComboboxEnum.FoodUnit
+        },
+        {
+          id: 2,
+          value: 15,
+          typeCombobox: this.$TypeComboboxEnum.FoodUnit
+        },
+        {
+          id: 3,
+          value: 20,
+          typeCombobox: this.$TypeComboboxEnum.FoodUnit
+        }
+      ],
+      optionsFoodProcessingPlaceRecord: [
+        {
+          id: 1,
+          value: 10,
+          typeCombobox: this.$TypeComboboxEnum.FoodProcessingPlace
+        },
+        {
+          id: 2,
+          value: 15,
+          typeCombobox: this.$TypeComboboxEnum.FoodProcessingPlace
+        },
+        {
+          id: 3,
+          value: 20,
+          typeCombobox: this.$TypeComboboxEnum.FoodProcessingPlace
+        }
+      ],
+      foodChild: {}, // Đối tượng chứa các thay đổi trên component con
+      // MenuGroup
+      menuGroups: [],
+      menuGroup: {},
+      // FoodUnit
+      foodUnits: [],
+      foodUnit: {},
+      // FoodProcessingPlace
+      foodProcessingPlaces: [],
+      foodProcessingPlace: {}
+    }
+  },
+  async created() {
+    await this.fetchData()
+
+    await this.handleFetchDataMenuGroup()
+    await this.handleFetchDataFoodUnit()
+    await this.handleFetchDataFoodProcessingPlace()
+  },
+  mounted() {
+    // Thực hiện lấy toàn bộ giá trị đối tượng food cha
+    this.foodChild = this.food
+  },
+  watch: {
+    foodChild() {
+      this.$emit('update:food', this.foodChild) // Thực hiện phát sự thay đổi lên component cha qua tham số "food"
+    },
+
+    food: {
+      deep: true,
+      handler(newValue) {
+        this.foodChild = newValue
+      }
     }
   },
   methods: {
+    async fetchData() {
+      // Thực hiện khởi tạo đối tượng lọc thông tin ban đầu cho Combobox "Nhóm thực đơn"
+      await this.fetchInitialMenuGroupComboboxFilter()
+
+      await this.fetchInitialFoodUnitComboboxFilter()
+
+      await this.fetchInitialFoodProcessingComboboxFilter()
+    },
+
+    /**
+     * - Thực hiện lấy thông tin filter combobox ban đầu
+     * - Author: DDKhang (29/6/2023)
+     */
+    async fetchInitialMenuGroupComboboxFilter() {
+      const formatOptionFilter = {
+        Page: 1,
+        Start: 0,
+        Limit: 10,
+        Filters: []
+      }
+      // Gọi api
+      const res = await filterInfoEntity(this.$EntityNameEnum.MenuGroups, formatOptionFilter)
+      const menuGroups = res.data.Data
+      // Cấu trúc lại giá trị cho combobox
+      const formatDataCombobox = menuGroups.map((m) => {
+        return {
+          id: m.MenuGroupId,
+          value: m.MenuGroupName
+        }
+      })
+      this.menuGroups = formatDataCombobox
+    },
+
+    /**
+     * - Thực hiện lấy thông tin filter combobox ban đầu
+     * - Author: DDKhang (29/6/2023)
+     */
+    async fetchInitialFoodUnitComboboxFilter() {
+      const formatOptionFilter = {
+        Page: 1,
+        Start: 0,
+        Limit: 10,
+        Filters: []
+      }
+      // Gọi api
+      const res = await filterInfoEntity(this.$EntityNameEnum.FoodUnits, formatOptionFilter)
+      const foodUnits = res.data.Data
+      // Cấu trúc lại giá trị cho combobox
+      const formatDataCombobox = foodUnits.map((m) => {
+        return {
+          id: m.FoodUnitId,
+          value: m.FoodUnitName
+        }
+      })
+      this.foodUnits = formatDataCombobox
+    },
+
+    /**
+     * - Thực hiện lấy thông tin filter combobox ban đầu
+     * - Author: DDKhang (29/6/2023)
+     */
+    async fetchInitialFoodProcessingComboboxFilter() {
+      const formatOptionFilter = {
+        Page: 1,
+        Start: 0,
+        Limit: 10,
+        Filters: []
+      }
+      // Gọi api
+      const res = await filterInfoEntity(
+        this.$EntityNameEnum.FoodProcessingPlaces,
+        formatOptionFilter
+      )
+      const foodUnits = res.data.Data
+      // Cấu trúc lại giá trị cho combobox
+      const formatDataCombobox = foodUnits.map((m) => {
+        return {
+          id: m.FoodProcessingPlaceId,
+          value: m.FoodProcessingPlaceName
+        }
+      })
+      this.foodProcessingPlaces = formatDataCombobox
+    },
+
+    /**
+     * - Tùy chỉnh class cho combobox nhóm thực đơn
+     * - Author: DDKhang (27/6/2023)
+     */
     handleCustomClassGroupMenuCombobox() {
       return {
         borderLeftNone: 'border-left--none',
         backgroundWhite: 'backgroundColor--white',
         widthInput: 'width-full'
       }
+    },
+
+    /**
+     *
+     * @param {*} option - Gía chọn từ combobox
+     * - Thực hiện lấy giá trị được chọn trong combobox
+     * - Author: DDKhang (27/6/2023)
+     */
+    handleChooseRecordCombobox(option) {
+      switch (option.typeCombobox) {
+        case this.$TypeComboboxEnum.MenuGroup:
+          this.foodChild.MenuGroupId = option.id
+          break
+        case this.$TypeComboboxEnum.FoodUnit:
+          this.foodChild.FoodUnitId = option.id
+          break
+        case this.$TypeComboboxEnum.FoodProcessingPlace:
+          this.foodChild.FoodProcessingPlaceId = option.id
+          break
+      }
+    },
+
+    // ##### --- Methods khởi tạo giá trị ban đầu cho combobox - Start --- #####
+    // ### MenuGroup
+    /**
+     * - Des: Khởi tạo giá trị mặc định cho combobox để hiển thị ngay khi ban đầu (dùng cho update mà muốn hiển thi)
+     * - Author: DDKhang (1/6/2023)
+     */
+    handleDefaultValueMenuGroupCombobox() {
+      return {
+        id: this.menuGroup.MenuGroupId,
+        value: this.menuGroup.MenuGroupName
+      }
+    },
+    /**
+     * - Thực hiện lấy thông tin của nhóm thực đơn theo id
+     * - Author: DDKhang (1/6/2023)
+     */
+    async handleFetchDataMenuGroup() {
+      if (this.foodChild?.MenuGroupId) {
+        const res = await getDataById(this.$EntityNameEnum.MenuGroups, {
+          ids: this.foodChild?.MenuGroupId
+        })
+        this.menuGroup = res.data[0]
+      }
+    },
+
+    // ### FoodUnit
+    handleDefaultValueFoodUnitCombobox() {
+      return {
+        id: this.foodUnit.FoodUnitId,
+        value: this.foodUnit.FoodUnitName
+      }
+    },
+    /**
+     * - Thực hiện lấy thông tin của nhóm thực đơn theo id
+     * - Author: DDKhang (1/6/2023)
+     */
+    async handleFetchDataFoodUnit() {
+      if (this.foodChild?.FoodUnitId) {
+        const res = await getDataById(this.$EntityNameEnum.FoodUnits, {
+          ids: this.foodChild?.FoodUnitId
+        })
+        this.foodUnit = res.data[0]
+      }
+    },
+
+    // ### FoodProcessingPlace
+    handleDefaultValueFoodProcessingPlaceCombobox() {
+      return {
+        id: this.foodProcessingPlace.FoodProcessingPlaceId,
+        value: this.foodProcessingPlace.FoodProcessingPlaceName
+      }
+    },
+    /**
+     * - Thực hiện lấy thông tin của nhóm thực đơn theo id
+     * - Author: DDKhang (1/6/2023)
+     */
+    async handleFetchDataFoodProcessingPlace() {
+      if (this.foodChild?.FoodProcessingPlaceId) {
+        const res = await getDataById(this.$EntityNameEnum.FoodProcessingPlaces, {
+          ids: this.foodChild?.FoodProcessingPlaceId
+        })
+        this.foodProcessingPlace = res.data[0]
+      }
     }
+
+    // ##### --- Methods khởi tạo giá trị ban đầu cho combobox - End --- #####
   }
 }
 </script>
@@ -72,7 +302,7 @@ export default {
           <span class="lb-item-required">(*)</span>
         </label>
         <div class="formMenu__info-input w-full">
-          <MISAInput />
+          <MISAInput v-model="this.foodChild.FoodName" />
           <Icon icon="material-symbols:error" color="red" width="20" height="20" />
         </div>
       </div>
@@ -82,7 +312,7 @@ export default {
           <p>Mã món</p>
         </label>
         <div class="formMenu__info-input w-full">
-          <MISAInput />
+          <MISAInput v-model="this.foodChild.FoodCode" />
           <Icon icon="material-symbols:error" color="red" width="20" height="20" />
         </div>
       </div>
@@ -94,8 +324,11 @@ export default {
         <div class="formMenu__info-input w-full">
           <!-- <input class="input" type="text" /> -->
           <MISACombobox
+            :type-combobox="this.$TypeComboboxEnum.MenuGroup"
+            :handle-choose-record="handleChooseRecordCombobox"
             :customClass="handleCustomClassGroupMenuCombobox()"
-            :listItemValue="this.optionsNumberRecord"
+            :listItemValue="this.menuGroups"
+            :defaultValueInput="handleDefaultValueMenuGroupCombobox()"
           />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
@@ -107,7 +340,13 @@ export default {
           <span class="lb-item-required">(*)</span>
         </label>
         <div class="formMenu__info-input w-full">
-          <input class="input" type="text" />
+          <MISACombobox
+            :type-combobox="this.$TypeComboboxEnum.FoodUnit"
+            :handle-choose-record="handleChooseRecordCombobox"
+            :customClass="handleCustomClassGroupMenuCombobox()"
+            :listItemValue="this.foodUnits"
+            :default-value-input="handleDefaultValueFoodUnitCombobox()"
+          />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
       </div>
@@ -118,7 +357,7 @@ export default {
           <span class="lb-item-required">(*)</span>
         </label>
         <div class="formMenu__info-input w-full">
-          <MISAInput class="w-1-2" />
+          <MISAInput class="w-1-2 input-text-right" v-model="this.foodChild.Price" />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
       </div>
@@ -128,7 +367,7 @@ export default {
           <p>Giá vốn</p>
         </label>
         <div class="formMenu__info-input w-full">
-          <MISAInput class="w-1-2" />
+          <MISAInput class="w-1-2 input-text-right" v-model="this.foodChild.InitialPrice" />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
       </div>
@@ -143,6 +382,8 @@ export default {
             class="input formMenu__info-input-desc textField-input input-focus"
             name=""
             rows="4"
+            v-model="this.foodChild.Description"
+            style="height: 80px"
           ></textarea>
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
@@ -153,7 +394,13 @@ export default {
           <p>Chế biến tại</p>
         </label>
         <div class="formMenu__info-input w-full">
-          <input class="input" type="text" />
+          <MISACombobox
+            :type-combobox="this.$TypeComboboxEnum.FoodProcessingPlace"
+            :handle-choose-record="handleChooseRecordCombobox"
+            :customClass="handleCustomClassGroupMenuCombobox()"
+            :listItemValue="this.foodProcessingPlaces"
+            :default-value-input="handleDefaultValueFoodProcessingPlaceCombobox()"
+          />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
       </div>
@@ -164,7 +411,12 @@ export default {
         </label>
         <div class="formMenu__info-input-checkbox-list w-full">
           <div class="formMenu__info-input-checkbox-noShowOnMenu">
-            <input class="input" type="checkbox" />
+            <input
+              class="input"
+              type="checkbox"
+              :checked="this.foodChild.StopSelling > 0 ? true : false"
+              v-model="this.foodChild.StopSelling"
+            />
             <label for="">Không hiển thị trên thực đơn</label>
           </div>
         </div>
@@ -315,6 +567,10 @@ export default {
 .formMenu__image-panel-btn-handle-closeImg {
 }
 
+.formMenu__info-input-desc {
+  font-family: 'Tahoma', Geneva, sans-serif;
+}
+
 // Các tiện ích thêm
 .w-full {
   width: 100%;
@@ -322,5 +578,9 @@ export default {
 
 .align-item-start {
   align-items: flex-start;
+}
+
+.input-text-right {
+  text-align: right;
 }
 </style>

@@ -4,22 +4,95 @@ import MISAPopup from './MISAPopup.vue'
 
 export default {
   name: 'MISAPopupInput',
+  props: {
+    contentPopup: {
+      type: Array
+    },
+    propertyDb: {
+      // Tên thuộc tính của cột cần lọc trong Database
+      type: String
+    },
+    handleFilterPopupInput: {
+      // Hàm xử lí lấy dữ liệu popup input để xử lí
+      type: Function
+    },
+    dataTypesFilter: {
+      // Kiểu dữ liệu để lọc (vd: string, int, ...)
+      type: String
+    },
+    defaultOptionPopupInput: {
+      // Gía trị mặc định ban đầu của popup
+      type: Object
+    }
+  },
   components: { MISAInput, MISAPopup },
   data() {
-    return {}
+    return {
+      inputFilter: {},
+      itemPopup: {
+        id: 1,
+        value: '',
+        icon: null,
+        typeFilter: this.$TypeFilterEnum.Include,
+        typeCondition: this.defaultOptionPopupInput?.typeCondition,
+        addition: 'and'
+      }
+    }
   },
   methods: {
-    handleCustomClassFilterCombobox() {
-      return {
-        hiddenArrow: 'hidden-arrow',
-        widthInput: 'width-28',
-        heightInput: 'height-28',
-        widthPopup: 'width-150'
+    /**
+     *
+     * @param {*} item - Gía trị của popup được chọn
+     * - Thực thực chọn option item popup để thực hiện điều kiện tương ứng
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleChooseRecordPopup(item) {
+      this.itemPopup = item
+      // Lấy giá trị thẻ input
+      const textFilterInput = this.inputFilter.textFilter
+      if (textFilterInput.trim() !== '') {
+        const option = {
+          ...this.itemPopup,
+          valueFilter: textFilterInput,
+          property: this.propertyDb,
+          dataTypesFilter: this.dataTypesFilter
+        }
+        this.handleFilterPopupInput(option)
       }
     },
 
-    handleChooseRecord(item) {
-      console.log('Item: ', item)
+    /**
+     * - Xử lí enter trên input để thực hiện lấy thông tin input
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleEnterInput(event) {
+      const { value } = event.target
+      // Thực hiện lấy giá trị input cho vào thuộc tính textFilter
+      this.inputFilter.textFilter = value
+      // Cấu hình giá trị trả ra của popup input
+      const option = {
+        ...this.itemPopup,
+        valueFilter: value,
+        property: this.propertyDb,
+        dataTypesFilter: this.dataTypesFilter
+      }
+      this.handleFilterPopupInput(option)
+    },
+
+    /**
+     * - Xử lí blur ra ngoài input để thực hiện lấy thông tin input
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleBlurInput(event) {
+      const { value } = event.target
+      this.inputFilter.textFilter = value
+      const option = {
+        ...this.itemPopup,
+        valueFilter: value,
+        property: this.propertyDb,
+        dataTypesFilter: this.dataTypesFilter
+      }
+      this.handleFilterPopupInput(option)
     }
   }
 }
@@ -28,11 +101,20 @@ export default {
 <template>
   <div class="popupInput">
     <div class="popupInput-popup">
-      <MISAPopup :handleChooseRecord="handleChooseRecord" />
+      <MISAPopup
+        :optionsFilterRecord="this.contentPopup"
+        :handleChooseRecord="handleChooseRecordPopup"
+        :defaultOptionPopupInput="defaultOptionPopupInput"
+      />
     </div>
     <div class="popupInput-input">
       <!-- <input type="text" /> -->
-      <MISAInput class="w-150" />
+      <MISAInput
+        @keyup.enter="handleEnterInput($event)"
+        @blur="handleBlurInput($event)"
+        name="textFilter"
+        v-model="this.inputFilter.textFilter"
+      />
     </div>
   </div>
 </template>
@@ -62,8 +144,9 @@ export default {
 
 .popupInput-input input {
   height: 100%;
-  border: 1px solid var(--color-border-default);
+  // border: 1px solid var(--color-border-default);
   border-radius: 0 var(--border-radius-primary) var(--border-radius-primary) 0;
+  min-width: 200px;
 }
 
 // Tiện ích thêm

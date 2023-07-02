@@ -32,6 +32,9 @@ export default {
     },
     tabindex: {
       type: Number
+    },
+    typeCombobox: {
+      type: String
     }
   },
   emits: ['update:modelValue'],
@@ -62,6 +65,7 @@ export default {
      */
     defaultValueInput: {
       handler(newVal) {
+        console.log('defaultValueInput: ', this.defaultValueInput)
         // Cần phải kiểm tra xem có giá trị default bởi khi thực hiện "Thêm" thì khi nhấn sang, thực hiện trên input datetime, radio... thì dẫn đến giá trị trên input checkbox thành undifined
         if (newVal && newVal.id) {
           this.value = newVal ?? { id: '', value: '' }
@@ -140,8 +144,13 @@ export default {
       this.value = item
       this.handleCloseListItem()
       this.selectedIndex = index
+
+      let newItem = { ...item }
+      if (this.typeCombobox) {
+        newItem = { ...newItem, typeCombobox: this.typeCombobox }
+      }
       // Callback lấy số bản ghi được chọn
-      this.handleChooseRecord(item)
+      this.handleChooseRecord(newItem)
     },
     /**
      * - Des: Đóng danh sách các mục của combobox
@@ -396,6 +405,10 @@ export default {
   display: flex;
   align-items: center;
   border-radius: var(--border-radius-primary);
+  border: solid 1px var(--color-border-default);
+}
+.comboboxNew__content:focus {
+  border: solid 1px var(--color-border-blue-default);
 }
 .comboboxNew__content:hover {
   background-color: #f6f6f6;
@@ -414,11 +427,13 @@ export default {
 
 .comboboxNew__content input {
   outline: none;
-  border: solid 1px var(--color-border-default);
+  /* border: solid 1px var(--color-border-default); */
   border-radius: var(--border-radius-primary) 0 0 var(--border-radius-primary);
   padding: 3px 5px;
   border-right: none;
   height: var(--height-input-primary);
+
+  border: none;
 }
 
 .comboboxNew__content input:hover {
@@ -428,7 +443,7 @@ export default {
 .comboboxNew__content--icon {
   height: var(--height-input-primary);
   /* padding: 10px 12px; */
-  border: solid 1px var(--color-border-default);
+  /* border: solid 1px var(--color-border-default); */
   border-radius: 0 var(--border-radius-primary) var(--border-radius-primary) 0;
   /* border-left: solid 1px #e6e6e6; */
   border-left: none;
@@ -452,6 +467,7 @@ export default {
   align-items: center;
   padding: 3px 5px;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .comboboxNew__listItem li:hover {

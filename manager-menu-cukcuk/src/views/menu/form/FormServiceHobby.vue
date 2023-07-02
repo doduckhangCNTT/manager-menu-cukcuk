@@ -1,14 +1,69 @@
 <script>
 import MISAButton from '../../../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
+import { getDataById } from '../../../utils/FetchData'
 export default {
   name: 'FormServiceHobby',
+  props: {
+    food: {
+      type: Object
+    },
+    foodValue: {
+      type: Object
+    }
+  },
   components: { MISAButton, Icon },
   data() {
     return {
-      dataListServiceHobby: [{ serviceHobby: '', morePrice: '' }], // Dánh sách chứa các giá trị của dòng input trong bảng
-      selectIndexLine: 0 // Vị trí hiện tại trên dòng tương ứng (mặc định đang focus vào dòng đầu tiên)
+      dataListServiceHobby: [{ ServiceHobbyName: '', MoreMoney: '' }], // Dánh sách chứa các giá trị của dòng input trong bảng
+      selectIndexLine: 0, // Vị trí hiện tại trên dòng tương ứng (mặc định đang focus vào dòng đầu tiên)
+      foodChild: {},
+      foodServiceHobbes: [],
+      foodId: null
     }
+  },
+  async created() {
+    this.foodChild = this.food
+    this.foodId = this.$route.params.id
+    if (this.foodId) {
+      const res = await getDataById(this.$EntityNameEnum.Foods, { ids: this.foodId })
+      this.foodChild = res.data[0]
+    }
+    await this.handleInitialServiceHobby()
+  },
+  mounted() {},
+  watch: {
+    // Thực hiện bắt sự thay đổi trong danh sách sở thích phục vụ -> truyền lên giá trị cha
+    dataListServiceHobby() {
+      this.$emit('update:food', { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby })
+      // Thực hiện cập nhật giá trị sở thích phục vụ cho nội dung con
+      this.foodChild = { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby }
+    }
+
+    // 'food.FoodServiceHobby': {
+    //   async handler() {
+    //     console.log('Food: ', this.foodValue)
+    //     const foodValue = [...this.foodValue.FoodServiceHobby]
+    //     if (foodValue?.length > 0) {
+    //       const foodServiceHobbes = foodValue.map((fs) => {
+    //         return fs.ServiceHobbyId
+    //       })
+    //       const serviceHobbyIds = foodServiceHobbes.join(',')
+    //       console.log('serviceHobbyIds: ', serviceHobbyIds)
+    //       const res = await getDataById(this.$EntityNameEnum.ServiceHobbes, {
+    //         ids: serviceHobbyIds
+    //       })
+    //       console.log('Res: ', res)
+    //       this.dataListServiceHobby = [...res.data]
+    //     }
+    //   }
+    // }
+
+    // foodValue: {
+    //   handler() {
+    //     this.foodChild = { ...this.foodValue }
+    //   }
+    // }
   },
   computed: {
     /**
@@ -24,6 +79,21 @@ export default {
     }
   },
   methods: {
+    async handleInitialServiceHobby() {
+      console.log('Hello: ', this.foodChild)
+      // const foodValue = { ...this.foodChild }
+      if (this.foodChild.FoodServiceHobby?.length > 0) {
+        this.foodServiceHobbes = this.foodChild.FoodServiceHobby?.map((fs) => {
+          return fs.ServiceHobbyId
+        })
+
+        const serviceHobbyIds = this.foodServiceHobbes.join(',')
+        console.log('serviceHobbyIds: ', serviceHobbyIds)
+        const res = await getDataById(this.$EntityNameEnum.ServiceHobbes, { ids: serviceHobbyIds })
+        this.dataListServiceHobby = [...res.data]
+      }
+    },
+
     /**
      * - Thực hiện thêm dòng sở thích phục vụ
      * - Author: DDKhang (22/6/2023)
@@ -31,7 +101,7 @@ export default {
     handleAddLineServiceHobby() {
       this.dataListServiceHobby = [
         ...this.dataListServiceHobby,
-        { serviceHobby: '', morePrice: '' }
+        { ServiceHobbyName: '', MoreMoney: '' }
       ]
     },
 
@@ -56,6 +126,14 @@ export default {
       const { value, name } = event.target
       const dataList = [...this.dataListServiceHobby]
       dataList[index][name] = value
+
+      // Khi có sự thay đổi trên input thì loại bỏ thuộc tính ServiceHobbyId để khi chuyển
+      // lên backend sẽ được hiểu là thêm mới
+      if (dataList[index]?.ServiceHobbyId) {
+        // eslint-disable-next-line no-unused-vars
+        const { ServiceHobbyId, ...newData } = dataList[index]
+        dataList[index] = newData
+      }
       this.dataListServiceHobby = dataList
     },
 
@@ -114,17 +192,19 @@ export default {
           >
             <input
               type="text"
-              name="serviceHobby"
-              :value="itemServiceHobby.serviceHobby"
+              name="ServiceHobbyName"
+              :value="itemServiceHobby.ServiceHobbyName"
               @input="(event) => handleChangeInput(event, index)"
+              class="input"
             />
           </div>
           <div class="formItem-value formService__list-serviceByHobby-tbody-item-col-two">
             <input
               type="text"
-              name="morePrice"
-              :value="itemServiceHobby.morePrice"
+              name="MoreMoney"
+              :value="itemServiceHobby.MoreMoney"
               @input="(event) => handleChangeInput(event, index)"
+              class="input"
             />
           </div>
         </div>
@@ -281,6 +361,10 @@ export default {
   background-color: var(--background-disable);
   border: 1px solid var(--color-border-default);
   pointer-events: none;
+}
+
+.input {
+  padding: 3px 5px;
 }
 </style>
 <!-- w-1-2 h-28 text-height-center border-right border-bottom -->

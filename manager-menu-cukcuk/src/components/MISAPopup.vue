@@ -3,6 +3,14 @@ import { Icon } from '@iconify/vue'
 export default {
   name: 'MISAPopup',
   props: {
+    optionsFilterRecord: {
+      // Dữ liệu nội dung cho popup
+      type: Array
+    },
+    defaultOptionPopupInput: {
+      // Gía trị măc định ban đầu cho popup
+      type: Object
+    },
     handleChooseRecord: {
       type: Function
     }
@@ -11,69 +19,62 @@ export default {
     return {
       isPopupContent: false,
       selectedIndex: null,
-      valueFilter: null,
-      optionsNumberRecord: [
-        {
-          id: 1,
-          value: '* : Chứa',
-          icon: '*',
-          typeFilter: this.$TypeFilterEnum.Include
-        },
-        {
-          id: 2,
-          value: '= : Bằng',
-          icon: '=',
-          typeFilter: this.$TypeFilterEnum.Equal
-        },
-        {
-          id: 3,
-          value: '+ : Bắt đầu bẳng',
-          icon: '+',
-          typeFilter: this.$TypeFilterEnum.StartEqual
-        },
-        {
-          id: 4,
-          value: '-  : Kết thúc bằng',
-          icon: '-',
-          typeFilter: this.$TypeFilterEnum.EndEqual
-        },
-        {
-          id: 5,
-          value: '!  : Không chứa',
-          icon: '!',
-          typeFilter: this.$TypeFilterEnum.NotContain
-        }
-      ]
+      valueFilter: null
     }
   },
   created() {
     this.initialValueFilter()
-  },
-  methods: {
-    initialValueFilter() {
-      const itemInitial = this.optionsNumberRecord[0]
-      this.valueFilter = itemInitial
-      this.selectedIndex = itemInitial.id - 1
-    },
-
-    handleShowPopupContent(event) {
-      event.stopPropagation()
-      this.isPopupContent = !this.isPopupContent
-    },
-    handleClosePopupContent() {
-      this.isPopupContent = false
-    },
-    handleChooseTypeFilter(item, index = 0) {
-      this.valueFilter = item
-      this.selectedIndex = index
-      this.handleChooseRecord(item)
-    }
   },
   mounted() {
     window.addEventListener('click', this.handleClosePopupContent)
   },
   beforeUnmount() {
     window.removeEventListener('click', this.handleClosePopupContent)
+  },
+  methods: {
+    /**
+     * - Khởi tạo giá trị hiển thị ban đầu của popup input
+     * - Author: DDKhang (23/6/2023)
+     */
+    initialValueFilter() {
+      // Khởi tạo giá trị ban đầu cho popup
+      if (this.optionsFilterRecord && this.defaultOptionPopupInput) {
+        const itemInitial = this.defaultOptionPopupInput || this.optionsFilterRecord[0]
+        this.valueFilter = itemInitial
+        // Lấy vị trí của item popup
+        this.selectedIndex = itemInitial.id - 1
+      }
+    },
+
+    /**
+     * - Đóng/Mở popup
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleShowPopupContent(event) {
+      event.stopPropagation()
+      this.isPopupContent = !this.isPopupContent
+    },
+
+    /**
+     * - Đóng popup content
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleClosePopupContent() {
+      this.isPopupContent = false
+    },
+
+    /**
+     *
+     * @param {*} item - Gía trị của popup
+     * @param {*} index - Thứ tự của item popup
+     * - Thực hiện lấy thông tin của item popup
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleChooseTypeFilter(item, index = 0) {
+      this.valueFilter = item
+      this.selectedIndex = index
+      this.handleChooseRecord(item)
+    }
   },
   components: { Icon }
 }
@@ -85,7 +86,7 @@ export default {
     <div class="popup-content" v-if="this.isPopupContent">
       <ul class="popup-content-list">
         <li
-          v-for="(item, index) in this.optionsNumberRecord"
+          v-for="(item, index) in this.optionsFilterRecord"
           :key="index"
           :class="`popup-content-list__item ${this.selectedIndex === index ? 'selected' : ''}`"
           @click="handleChooseTypeFilter(item, index)"
@@ -122,7 +123,7 @@ export default {
   border-radius: 2px;
   position: absolute;
   z-index: 3;
-  width: 150px;
+  width: 200px;
   box-shadow: 0px 3px 25px rgba(124, 130, 141, 0.2);
 }
 

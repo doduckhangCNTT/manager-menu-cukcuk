@@ -37,7 +37,7 @@ export default {
 </script>
 
 <template>
-  <div class="" :tabId="tabId" :titleTab="titleTab" v-if="tabId === this.selectedTab">
+  <div class="" :tabId="tabId" :titleTab="titleTab" v-show="tabId === this.selectedTab">
     <slot></slot>
   </div>
 </template>

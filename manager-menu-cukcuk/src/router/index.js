@@ -9,6 +9,13 @@ const router = createRouter({
       component: () => import('../views/menu/MenuListView.vue'),
       children: [
         {
+          path: ':id',
+          components: {
+            MenuDialogFormRouterView: () => import('../views/menu/MenuDialogForm.vue')
+          },
+          name: 'MenuDialogFormEdit'
+        },
+        {
           path: 'create',
           components: {
             MenuDialogFormRouterView: () => import('../views/menu/MenuDialogForm.vue')

@@ -2,50 +2,67 @@
 import MISAButton from '@/components/MISAButton.vue'
 import MISAPopupInput from '@/components/MISAPopupInput.vue'
 import MainListFooter from './MainListFooter.vue'
-// import MenuDialogForm from './MenuDialogForm.vue'
 import MISACombobox from '../../components/MISACombobox.vue'
 import MISAPopupRightClick from '../../components/MISAPopupRightClick.vue'
+import { deleteMultiple, postData } from '../../utils/FetchData'
+import BaseUrl from '../../utils/BaseUrl'
+import TheLoading from '../../components/TheLoading.vue'
+
+import MISACheckbox from '../../components/MISACheckbox.vue'
+import { filterInfoEntity } from '../../utils/FetchData'
+import { useMenuFoodStore } from '../../stores/menuFood'
 
 export default {
   data() {
     return {
       listToolbarItem: null, // Danh sách toolbar table
-      optionsNumberRecord: [
+      optionsFoodTypeRecord: [
         {
-          id: 1,
-          value: 10
+          id: 'ft-1',
+          value: 'Tất cả',
+          valueFilter: 1,
+          typeCondition: '=',
+          property: 'TypeFoodId',
+          type: 'GUID',
+          addition: 'and'
         },
         {
-          id: 2,
-          value: 15
+          id: 'ft-2',
+          value: 'Món ăn',
+          valueFilter: 2,
+          typeCondition: '=',
+          property: 'TypeFoodId',
+          type: 'GUID',
+          addition: 'and'
         },
         {
-          id: 3,
-          value: 20
+          id: 'ft-3',
+          value: 'Đồ uống',
+          valueFilter: 3,
+          typeCondition: '=',
+          property: 'TypeFoodId',
+          type: 'GUID',
+          addition: 'and'
+        }
+      ],
+      optionsStopSelling: [
+        {
+          id: 'ss-1',
+          value: 'Có',
+          valueFilter: 1, // Tìm kiếm theo điều kiện có
+          typeCondition: '=',
+          property: 'StopSelling',
+          type: 'int',
+          addition: 'and'
         },
         {
-          id: 4,
-          value: 30
-        },
-        {
-          id: 5,
-          value: 40
-        },
-        {
-          id: 6,
-          value: 50
-        },
-        {
-          id: 7,
-          value: 60
-        },
-        {
-          id: 8,
-          value: 70
-        },
-        {
-          id: 9,
-          value: 80
+          id: 'ss-2',
+          value: 'Không',
+          valueFilter: 0, // Tìm kiếm theo điều kiện không
+          typeCondition: '=',
+          property: 'StopSelling',
+          type: 'int',
+          addition: 'and'
         }
       ],
       // ##### --- Biến khởi tạo cho popup right click --- #####
@@ -54,13 +71,27 @@ export default {
       popupY: 0, // Vị trí hiển thị popup theo trục y
 
       // ##### --- Biến khởi tạo cho chọn nhiều dòng trên bảng --- #####
-      selectedRows: [] // Chứa các dòng được chọn trên table
+      selectedRows: [], // Chứa các dòng được chọn trên table
+      filterOptions: [], // Chứa các thuộc tính được lọc
+      menuFoods: [],
+      loading: false,
+      loadingProgress: 0,
+      menuFoodStore: useMenuFoodStore()
     }
   },
-  components: { MISAButton, MISAPopupInput, MainListFooter, MISACombobox, MISAPopupRightClick },
+  components: {
+    MISAButton,
+    MISAPopupInput,
+    MainListFooter,
+    MISACombobox,
+    MISAPopupRightClick,
+    MISACheckbox,
+    TheLoading
+  },
   created() {
     // Thực hiện lấy danh sách toolbar table
     this.listToolbarItem = this.$ResourceToolbarTable.toolbarItems
+    this.fetchData()
   },
   mounted() {
     window.addEventListener('click', this.handleClosePopupContent)
@@ -68,7 +99,46 @@ export default {
   beforeUnmount() {
     window.removeEventListener('click', this.handleClosePopupContent)
   },
+  watch: {
+    '$route.query': {
+      async handler() {
+        this.fetchDataByPageAndLimit()
+      }
+    }
+  },
   methods: {
+    async fetchData() {
+      const formatOptionFilter = {
+        Page: 1,
+        Start: 0,
+        Limit: 30,
+        Filters: []
+      }
+      this.$router.push({
+        query: { page: formatOptionFilter.Page, limit: formatOptionFilter.Limit }
+      })
+      const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+      this.menuFoods = res.data.Data
+      // Đặt giá trị cho store
+      this.menuFoodStore.setDataFilter(res.data)
+    },
+
+    async fetchDataByPageAndLimit() {
+      const { page, limit } = this.$route.query
+      if (page && limit) {
+        const formatOptionFilter = {
+          Page: page,
+          Start: 0,
+          Limit: limit,
+          Filters: []
+        }
+
+        const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+        this.menuFoods = res.data.Data
+        this.menuFoodStore.setDataFilter(res.data)
+      }
+    },
+
     /**
      *
      * @param {*} typeBtn - Kiểu btn toolbar
@@ -81,7 +151,9 @@ export default {
           this.$router.push('/menu/create')
           break
         case this.$TypeToolbarBtnEnum.edit:
-          console.log('Edit')
+          if (this.selectedRows.length > 0) {
+            this.handleEditRowItem(this.selectedRows[0].FoodId)
+          }
           break
       }
     },
@@ -102,8 +174,18 @@ export default {
       this.popupX = event.clientX
       this.popupY = event.clientY
 
+      // Kiểm tra dòng đã tồn tại trong danh sách dòng đã lựa chọn trước đó
+      const isRowItemExist = this.selectedRows.indexOf(row)
+      if (isRowItemExist === -1) {
+        // Thực hiện chọn 1 dòng khi nhấn vào dòng đó
+        this.selectedRows = [row]
+      }
       // Xử lí nội dung lấy từ việc nhấn lên dòng tương ứng
-      console.log('Row: ', row)
+      if (this.selectedRows.length > 0) {
+        // Thực hiện bấm chuột phải lên 1 trong các dòng đã chọn -> xử lí các dòng đó || Bấm ra ngoài các dòng đã chọn thì xử lí dòng hiện tại
+        console.log('Handle Rows', this.selectedRows)
+      }
+      // console.log('Row: ', row)
     },
 
     /**
@@ -118,10 +200,28 @@ export default {
      * - Xử lí khi nhấn trên các thành phần của popup
      * - Author: DDKhang (24/6/2023)
      */
-    handleClickPopupRightItem() {
-      console.log('Hello')
+    handleClickPopupRightItem(btnType) {
+      switch (btnType) {
+        case this.$TypeToolbarBtnEnum.create:
+          console.log('Create')
+          break
+        case this.$TypeToolbarBtnEnum.duplicate:
+          console.log('duplicate')
+          break
+        case this.$TypeToolbarBtnEnum.edit:
+          console.log('edit')
+          break
+        case this.$TypeToolbarBtnEnum.delete:
+          console.log('delete')
+          this.handleBtnDelete()
+          break
+        case this.$TypeToolbarBtnEnum.refresh:
+          console.log('refresh')
+          this.handleBtnRefesh()
+          break
+      }
     },
-    // ##### --- Methods Popup right click - End --- #####
+    // --- End ---
 
     // ##### --- Methods Chọn nhiều dòng trên bảng - Start --- #####
     /**
@@ -157,14 +257,201 @@ export default {
      */
     isSelectedRows(rowItem) {
       return this.selectedRows.includes(rowItem)
+    },
+    // --- End ---
+
+    // ##### --- Methods Thực hiện lọc trên cột tương ứng - Start --- #####
+    handleChooseRecordCombobox(option) {
+      const filterOptions = [...this.filterOptions]
+      if (filterOptions.length === 0) {
+        // Thực hiện thêm đối tượng vào mảng
+        const optionNewFilter = {}
+        optionNewFilter.xType = 'filter'
+        optionNewFilter.isCreateFromFilterRow = true
+        optionNewFilter.property = option.property
+        optionNewFilter.operator = option.typeCondition
+        optionNewFilter.value = option.valueFilter
+        ;(optionNewFilter.addition = option.addition),
+          (optionNewFilter.group = option.property + 'FromFilterRow')
+
+        this.filterOptions.push(optionNewFilter)
+      } else {
+        let isFlagReplace = false
+        // Kiểm tra option đã tồn tại trong filterOptions
+        const newOptionFilter = filterOptions.map((fo) => {
+          console.log('fo.property: ', fo.property)
+          console.log('Condition: ', fo.property === option.property)
+          if (fo.property === option.property) {
+            const optionNewFilter = {}
+            optionNewFilter.xType = 'filter'
+            optionNewFilter.isCreateFromFilterRow = true
+            optionNewFilter.property = option.property
+            optionNewFilter.operator = option.typeCondition
+            optionNewFilter.value = option.valueFilter
+            ;(optionNewFilter.addition = option.addition),
+              (optionNewFilter.group = option.property + 'FromFilterRow')
+
+            isFlagReplace = true
+            return optionNewFilter
+          }
+          return fo
+        })
+
+        if (!isFlagReplace) {
+          const optionNewFilterAdd = {}
+          optionNewFilterAdd.xType = 'filter'
+          optionNewFilterAdd.isCreateFromFilterRow = true
+          optionNewFilterAdd.property = option.property
+          optionNewFilterAdd.operator = option.typeCondition
+          optionNewFilterAdd.value = option.valueFilter
+          ;(optionNewFilterAdd.addition = option.addition),
+            (optionNewFilterAdd.group = option.property + 'FromFilterRow')
+
+          newOptionFilter.push(optionNewFilterAdd)
+        }
+        console.log('NewOptionFilter: ', newOptionFilter)
+        this.filterOptions = newOptionFilter
+      }
+      console.log('Option: ', option)
+    },
+
+    formatOptionFilter(option) {
+      // Thực hiện thêm đối tượng vào mảng
+      const optionNewFilter = {}
+      optionNewFilter.xType = 'filter'
+      optionNewFilter.isCreateFromFilterRow = true
+      optionNewFilter.property = option.property
+      optionNewFilter.operator = option.typeCondition
+      optionNewFilter.value = option.valueFilter
+      optionNewFilter.type = option.dataTypesFilter
+      ;(optionNewFilter.addition = option.addition),
+        (optionNewFilter.group = option.property + 'FromFilterRow')
+
+      return optionNewFilter
+    },
+
+    /**
+     *
+     * @param {*} option - Gía trị lấy từ popup input
+     * - Thực hiện lọc dữ liệu trên popup input
+     * - Author: DDKhang (25/6/2023)
+     */
+    async handleFilterPopupInput(option) {
+      try {
+        const filterOptions = [...this.filterOptions]
+        let newOptionFilter = [] // Chứa option filter
+
+        if (filterOptions.length === 0) {
+          // Nếu filterOptions ban đầu chưa có giá trị
+          // 1. Cấu trúc lại option theo đúng quy định
+          const optionNewFilter = this.formatOptionFilter(option)
+          // 2. Thực hiện thêm đối tượng vào mảng
+          newOptionFilter.push(optionNewFilter)
+          this.filterOptions.push(optionNewFilter)
+        } else {
+          let isFlagPushOption = false
+          // Kiểm tra option đã tồn tại trong filterOptions
+          newOptionFilter = filterOptions.map((fo) => {
+            if (fo.property === option.property) {
+              // Nếu option đó đã tồn tại
+              const optionNewFilter = this.formatOptionFilter(option)
+              isFlagPushOption = true
+              return optionNewFilter
+            }
+            return fo
+          })
+
+          if (!isFlagPushOption) {
+            // Nếu option đó chưa tồn tại
+            const optionNewFilterAdd = this.formatOptionFilter(option)
+            newOptionFilter.push(optionNewFilterAdd)
+          }
+          this.filterOptions = newOptionFilter
+        }
+
+        // Cấu hình lại dữ liệu gửi lên để lọc
+        const formatOptionFilter = {
+          Page: 1,
+          Start: 0,
+          Limit: 20,
+          Filters: [...newOptionFilter]
+        }
+
+        const res = await postData(`${BaseUrl}/Foods/filter`, formatOptionFilter)
+        console.log('Res filter: ', res)
+        this.menuFoods = res.data.Data
+
+        console.log('Option: ', option)
+      } catch (error) {
+        console.log('error: ', error)
+      }
+    },
+    // --- End ---
+
+    // ##### --- Xử lí thao tác cho dialog form - Start --- #####
+    handleEditRowItem(menuId) {
+      this.$router.push(`/menu/${menuId}`)
+    },
+    // --- End ---
+
+    // ##### --- Methods xử lí chọn button để xử lí --- Start #####
+    async handleBtnDelete() {
+      const listFoodIds = this.selectedRows.map((f) => {
+        return f.FoodId
+      })
+      const strFoodListIds = listFoodIds.join(',')
+      await deleteMultiple(this.$EntityNameEnum.Foods, strFoodListIds)
+    },
+
+    async handleBtnRefesh() {
+      this.loadData()
+    },
+
+    /**
+     * Params: null
+     * Des: Xử lí tải dữ liệu employee từ server ("Không sử dụng nữa, thay bằng fetchDataByPageAndLimit()")
+     * Author: DDKhang
+     * CreateAt: 30/6/2023
+     * ModifierAt: 30/6/2023
+     */
+    async loadData() {
+      this.loading = true
+      try {
+        const intervalId = setInterval(() => {
+          if (this.loadingProgress < 100) {
+            this.loadingProgress += 8
+          } else {
+            clearInterval(intervalId)
+            this.loading = false
+          }
+        }, 2000)
+        this.$router.push('/menu?page=1&limit=30')
+        const formatOptionFilter = {
+          Page: 1,
+          Start: 0,
+          Limit: 30,
+          Filters: []
+        }
+        const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+        this.loadingProgress = 100
+        this.menuFoods = res.data.Data
+        this.loading = false
+
+        // Phát thông tin của các bản record -> EmployeeHomeFooter.vue
+        // this.$msemitter.emit("recordsResInfo", res.data);
+      } catch (error) {
+        console.log(error)
+        this.isLoading = false
+      }
     }
 
-    // ##### --- Methods Chọn nhiều dòng trên bảng - End --- #####
+    // ##### --- Methods xử lí chọn button để xử lí --- End #####
   }
 }
 </script>
 
 <template>
+  <TheLoading v-if="this.loading" :loadingProgress="this.loadingProgress" />
   <main class="main-content">
     <!-- <MenuDialogForm /> -->
     <router-view name="MenuDialogFormRouterView"></router-view>
@@ -180,7 +467,7 @@ export default {
           class="popup-rightClick__list-option-item"
           v-for="(itemToolbarPopup, index) in this.$ResourceToolbarTable.toolbarItems"
           :key="index"
-          @click="handleClickPopupRightItem"
+          @click="handleClickPopupRightItem(itemToolbarPopup.type)"
         >
           <div :class="itemToolbarPopup.classIcon"></div>
           <p class="popup-rightClick__list-option-item-content">
@@ -191,7 +478,7 @@ export default {
     </MISAPopupRightClick>
 
     <div class="main-content--primary">
-      <!-- Toolbar -->
+      <!-- ######### --- Toolbar ---######### -->
       <div class="toolbar">
         <div class="toolbar-item" v-for="(toolbarItem, index) in listToolbarItem" :key="index">
           <MISAButton
@@ -206,7 +493,7 @@ export default {
       </div>
     </div>
     <div class="main-table">
-      <!-- Table -->
+      <!-- ######### --- Table ---######### -->
       <div class="main__table-info">
         <table id="table-menu">
           <thead>
@@ -216,20 +503,32 @@ export default {
                 <div class="table-menu-thead__filter">
                   <MISACombobox
                     :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsNumberRecord"
+                    :listItemValue="this.optionsFoodTypeRecord"
+                    :handle-choose-record="handleChooseRecordCombobox"
                   />
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Mã món</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISAPopupInput
+                    dataTypesFilter="string"
+                    propertyDb="foodCode"
+                    :handleFilterPopupInput="handleFilterPopupInput"
+                    :defaultOptionPopupInput="this.$ContentPopup.PopupNormal[0]"
+                  />
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Tên món</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISAPopupInput
+                    dataTypesFilter="string"
+                    propertyDb="FoodName"
+                    :contentPopup="this.$ContentPopup.PopupNormal"
+                    :handleFilterPopupInput="handleFilterPopupInput"
+                    :defaultOptionPopupInput="this.$ContentPopup.PopupNormal[0]"
+                  />
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
@@ -247,15 +546,21 @@ export default {
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Giá bán</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISAPopupInput
+                    dataTypesFilter="int"
+                    propertyDb="Price"
+                    :contentPopup="this.$ContentPopup.PopupPrice"
+                    :handleFilterPopupInput="handleFilterPopupInput"
+                    :defaultOptionPopupInput="this.$ContentPopup.PopupPrice[2]"
+                  />
                 </div>
               </th>
-              <th class="table-menu__theadItem-filter">
+              <!-- <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Thay đổi theo thời giá</div>
                 <div class="table-menu-thead__filter">
                   <MISACombobox
                     :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsNumberRecord"
+                    :listItemValue="this.optionsFoodTypeRecord"
                   />
                 </div>
               </th>
@@ -264,7 +569,7 @@ export default {
                 <div class="table-menu-thead__filter">
                   <MISACombobox
                     :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsNumberRecord"
+                    :listItemValue="this.optionsFoodTypeRecord"
                   />
                 </div>
               </th>
@@ -273,10 +578,10 @@ export default {
                 <div class="table-menu-thead__filter">
                   <MISACombobox
                     :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsNumberRecord"
+                    :listItemValue="this.optionsFoodTypeRecord"
                   />
                 </div>
-              </th>
+              </th> -->
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Hiển thị trên thực đơn</div>
                 <div class="table-menu-thead__filter">
@@ -286,34 +591,67 @@ export default {
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Ngừng bán</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISACombobox
+                    :customClass="handleCustomClassCombobox()"
+                    :listItemValue="this.optionsStopSelling"
+                    :handle-choose-record="handleChooseRecordCombobox"
+                  />
                 </div>
               </th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="i in 30"
-              :key="i"
-              :class="`${isSelectedRows(i) ? 'selectedRow' : ''}`"
-              @click="handleSelectedRow($event, i)"
+              v-for="food in this.menuFoods"
+              :key="food.FoodId"
+              :class="`${isSelectedRows(food) ? 'selectedRow' : ''}`"
+              @click="handleSelectedRow($event, food)"
+              @dblclick="handleEditRowItem(food.FoodId)"
             >
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                {{ food.TypeFoodName }}
+              </td>
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                {{ food.FoodCode }}
+              </td>
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                {{ food.FoodName }}
+              </td>
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                {{ food.MenuGroupName }}
+              </td>
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                {{ food.FoodUnitName }}
+              </td>
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                {{ food.Price }}
+              </td>
+              <td
+                class=""
+                @contextmenu.prevent="showPopupRightClickAt($event, food)"
+                style="text-align: center"
+              >
+                <MISACheckbox class="disable" @dblclick.stop :checked="false" />
+              </td>
+              <td
+                class=""
+                @contextmenu.prevent="showPopupRightClickAt($event, food)"
+                style="text-align: center"
+              >
+                <MISACheckbox
+                  class="disable"
+                  @dblclick.stop
+                  :checked="food.StopSelling ? true : false"
+                />
+              </td>
+              <!-- <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
               <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td>
+              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, i)">Value 1</td> -->
             </tr>
           </tbody>
         </table>
       </div>
-      <!-- Footer table -->
+      <!-- ######### ---  Footer table ######### -->
       <footer class="main-content__footer">
         <MainListFooter />
       </footer>

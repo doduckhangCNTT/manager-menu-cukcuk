@@ -1,5 +1,6 @@
 const EmitterEnum = {
-  tabId: 'tabId'
+  tabId: 'tabId',
+  showToast: 'showToast'
 }
 
 export default EmitterEnum

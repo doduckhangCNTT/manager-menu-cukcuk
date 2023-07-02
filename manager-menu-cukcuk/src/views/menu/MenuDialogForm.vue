@@ -5,6 +5,8 @@ import MISAButton from '@/components/MISAButton.vue'
 import FormMenuDetail from './form/FormMenuDetail.vue'
 import { Icon } from '@iconify/vue'
 import FormServiceHobby from './form/FormServiceHobby.vue'
+import BaseUrl from '../../utils/BaseUrl'
+import { postData, updateInfoEntity, getDataById } from '../../utils/FetchData'
 
 export default {
   name: 'MenuDialogForm',
@@ -18,6 +20,11 @@ export default {
   },
   data() {
     return {
+      food: {
+        StopSelling: 0,
+        ServiceHobbes: []
+      },
+      // Đối tượng dialgo thông báo/Hỏi/Cảnh báo
       objDialog: {
         titleDialog: 'CUKCUK-Quản lí nhà hàng',
         contentDialog: 'Nội dụng thông báo Nội dụng thông báoNội dụng thông báo',
@@ -29,10 +36,50 @@ export default {
         isBtnNo: true,
         isBtnCancel: false,
         isBtnAgree: false
+      },
+      foodId: null
+    }
+  },
+  async created() {
+    this.foodId = this.$route.params.id
+    await this.handleInitialDialog()
+  },
+  computed: {
+    /**
+     * Params:
+     * Des:  Tính toán thêm hoặc cập nhật
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
+    behaviorHandle() {
+      // if (this.employeeId && this.queryUrl.duplicate === "true") {
+      //   return this.$BehaviorHandleEnum.Duplicate;
+      // } else
+      if (this.foodId) {
+        return this.$BehaviorHandleEnum.Edit // Thực hiện Edit
+      } else {
+        return this.$BehaviorHandleEnum.AddNew // Thực hiện Create
       }
     }
   },
   methods: {
+    async handleInitialDialog() {
+      if (this.behaviorHandle === this.$BehaviorHandleEnum.AddNew) {
+        console.log('Handle Initial Dialog Create')
+      } else if (
+        this.behaviorHandle === this.$BehaviorHandleEnum.Edit ||
+        this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
+      ) {
+        console.log('Handle Initial Dialog Update / Duplicate')
+        if (this.foodId) {
+          const res = await getDataById(this.$EntityNameEnum.Foods, { ids: this.foodId })
+          console.log('Res: ', res)
+          this.food = res.data[0]
+        }
+      }
+    },
+
     /**
      * Chuyển hướng sang trang mà hình chính
      * - Author: DDKhang (23/6/2023)
@@ -41,6 +88,12 @@ export default {
       this.$router.push('/menu')
     },
 
+    /**
+     *
+     * @param {*} typeBtn - Kiểu button dialog
+     * - Thực hiện xử lí tác vụ của từng loại button trên dialog
+     * - Author: DDKhang (23/6/2023)
+     */
     handleChooseBtnPanelOnDialog(typeBtn) {
       switch (typeBtn) {
         case this.$TypeBtnDialogEnum.Have:
@@ -51,6 +104,30 @@ export default {
           break
         case this.$TypeBtnDialogEnum.Agree:
           break
+      }
+    },
+
+    // ##### --- Methods xử lí thao tác trên form --- #####
+    async handleSaveForm() {
+      // Validate
+
+      if (this.behaviorHandle === this.$BehaviorHandleEnum.AddNew) {
+        const newFood = { ...this.food, StopSelling: this.food.StopSelling ? 1 : 0 }
+        await postData(`${BaseUrl}/Foods`, newFood)
+
+        // Thực hiện thông báo
+        // 1. Thông tin thông báo
+        const toastInfo = {
+          status: this.$ResourceToast.AddEntity.AddSuccess.status,
+          msg: this.$ResourceToast.AddEntity.AddSuccess.msg
+        }
+        // 2. Phát lên App.vue -> để hiển thị Toast
+        this.$msemitter.emit(this.$EmitterEnum.showToast, toastInfo, 5000)
+        this.$router.push('/menu')
+      } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Edit) {
+        console.log('Edit')
+        const newFood = { ...this.food, StopSelling: this.food.StopSelling ? 1 : 0 }
+        await updateInfoEntity(this.$EntityNameEnum.Foods, newFood)
       }
     }
   }
@@ -80,10 +157,10 @@ export default {
         <div class="dialog-form-menu__wrapper-body-details">
           <TabWrapper class="dialog-form-menu__wrapper-body-details-tabs">
             <TabItem tabId="tab1" :titleTab="this.$ResourceDialogForm.TitleTab.commonInfo"
-              ><FormMenuDetail
+              ><FormMenuDetail :foodValue="food" v-model:food="food"
             /></TabItem>
             <TabItem tabId="tab2" :titleTab="this.$ResourceDialogForm.TitleTab.serviceHobby"
-              ><FormServiceHobby
+              ><FormServiceHobby :foodValue="food" v-model:food="food"
             /></TabItem>
             <TabItem
               tabId="tab3"
@@ -105,6 +182,7 @@ export default {
           </div>
           <div class="dialog-form-menu__wrapper-body-footer-btnHandle">
             <MISAButton
+              @click="handleSaveForm"
               class="dialog-form-menu__wrapper-body-footer-btnHandle-save button px-3 py-10"
             >
               <Icon icon="ri:save-3-fill" color="#0072bc" width="20" height="20" />
@@ -150,6 +228,7 @@ export default {
   background-color: var(--background-color-dialog-form);
   width: var(--width-dialogForm);
   padding: 5px;
+  height: 673px;
 }
 
 .dialog-form-menu__wrapper-header {
@@ -172,6 +251,10 @@ export default {
 .dialog-form-menu__wrapper-body {
   background-color: var(--background-color-dialog-form-wrapper-body);
   padding: 8px;
+  height: calc(100% - var(--height-header-dialogForm));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .dialog-form-menu__wrapper-body-details {
@@ -202,4 +285,6 @@ export default {
   column-gap: 5px;
   height: 25px;
 }
+
+// Các tiện ích thêm
 </style>

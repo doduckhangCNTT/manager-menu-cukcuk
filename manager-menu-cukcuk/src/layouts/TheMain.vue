@@ -10,7 +10,7 @@ export default {
 
 <template>
   <main class="main">
-    <!-- Toolbar  -->
+    <!-- Main top  -->
     <div class="main-top">
       <h1 class="main-top__title-table">Thực đơn</h1>
       <div class="main-top__panel">
