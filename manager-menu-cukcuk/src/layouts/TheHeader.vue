@@ -4,6 +4,16 @@ export default {
   name: 'TheHeader',
   components: {
     Icon
+  },
+  methods: {
+    /**
+     * - Xử lí quay trở lại trang chủ
+     * - Author: DDKhang (3/7/2023)
+     */
+    handleComebackHome() {
+      // Phát đến MenuList.vue
+      this.$msemitter.emit(this.$EmitterEnum.refreshPage)
+    }
   }
 }
 </script>
@@ -14,7 +24,7 @@ export default {
     <div class="header-left--logo">
       <!-- Icon Hamburger - Thực hiện đóng mở navbar -->
       <div class="header-left-iconHamburger"></div>
-      <div class="logoCukCuk"></div>
+      <div class="logoCukCuk" @click="handleComebackHome"></div>
     </div>
 
     <!-- Panel header -->
@@ -66,6 +76,7 @@ header {
   background: url('../assets/cukcukResource/logoCukCuk207x45.png') no-repeat 0 0;
   width: 121px;
   height: 34px;
+  cursor: pointer;
 }
 .header-right {
   display: flex;

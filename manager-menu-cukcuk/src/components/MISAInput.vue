@@ -1,4 +1,6 @@
 <script>
+import { nextTick } from 'vue'
+
 export default {
   name: 'MISAInput',
   props: {
@@ -32,8 +34,62 @@ export default {
   data() {
     return {}
   },
+  mounted() {
+    this.focusInput()
+  },
+  beforeUpdate() {
+    // Thực hiện xóa class "invalid" khỏi thẻ input khi thay đổi giá trị trên input
+    if (this.modelValue) {
+      const tagCurrent = this.$refs.refInput
+      this.removeInvalidInputForm(tagCurrent)
+    }
+  },
   computed: {},
-  methods: {}
+  methods: {
+    /**
+     * Params:
+     * Des: Thực hiện focus vào thẻ input nào có thuộc tính 'focus="true"'
+     * Author: DDKhang
+     * CreateAt: 13/5/2023
+     * ModifierAt: 13/5/2023
+     */
+    focusInput() {
+      if (this.focus) {
+        nextTick(() => {
+          this.$refs.refInput.focus()
+        })
+      }
+    },
+
+    /**
+     * Params:
+     *  + tagCurrent: thẻ input hiện tại
+     * Des: Thực hiện xóa class "invalid" từ thẻ cha của input đó
+     * Author: DDKhang
+     * CreateAt: 11/5/2023
+     * ModifierAt: 11/5/2023
+     */
+    removeInvalidInputForm(tagCurrent) {
+      // Tham chieu len thẻ cha (".formGroup")
+      const tagParent = tagCurrent?.closest('.form-group')
+      if (tagParent) {
+        tagParent.classList.remove('invalid')
+        // tagCurrent.setAttribute('title', '')
+      }
+    },
+
+    handleInputRequired() {
+      if (this.required) {
+        const tagCurrent = this.$refs.refInput
+        const value = tagCurrent?.value
+        if (!value) {
+          // Tham chieu len thẻ cha (".formGroup")
+          const tagParent = tagCurrent?.closest('.form-group')
+          tagParent.classList.add('invalid')
+        }
+      }
+    }
+  }
 }
 </script>
 

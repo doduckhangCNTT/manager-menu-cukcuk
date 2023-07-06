@@ -3,29 +3,73 @@ import MISAButton from '../../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
 import MISATooltip from '../../components/MISATooltip.vue'
 import { useMenuFoodStore } from '../../stores/menuFood'
-import inputFunctions from '../../utils/functions/inputFunctions'
+import InputFunctions from '../../utils/functions/InputFunctions'
+import MISACombobox from '../../components/MISACombobox.vue'
 
 export default {
   name: 'MainListFooter',
-  components: { MISAButton, Icon, MISATooltip },
+  components: { MISAButton, Icon, MISATooltip, MISACombobox },
   data() {
     return {
       menuFoodsStore: useMenuFoodStore(),
       selectedPageNumber: 1,
-      qualityRecordsStart: null
+      qualityRecordsStart: null,
+      optionsNumberRecord: [
+        {
+          id: 1,
+          value: 25
+        },
+        {
+          id: 2,
+          value: 30
+        },
+        {
+          id: 3,
+          value: 50
+        },
+        {
+          id: 4,
+          value: 100
+        },
+        {
+          id: 5,
+          value: 10
+        }
+      ],
+      comboboxValue: 0,
+      // defaultValue: this.optionsNumberRecord[2],
+      defaultValue: {
+        id: 2,
+        value: 30
+      }
     }
   },
   mounted() {},
+  watch: {
+    '$route.query.limit': {
+      handler() {
+        this.defaultValue = { ...this.defaultValue, value: this.$route.query.limit }
+      }
+    }
+  },
   computed: {
+    /**
+     * - Tính toán tổng số trang tương ứng với số bản ghi và giới hạn bản ghi trên trang (limit)
+     * - Author: DDKhang (1/7/2023)
+     */
     calcTotalPage() {
       const { limit } = this.$route.query
       // Tổng số bản ghi chưa lọc
       const menuFoods = this.menuFoodsStore.getDataStore()
-      const totalRecords = menuFoods.TotalRecord
+      const totalRecords = menuFoods.TotalRecordsResult
       const totalPage = Math.ceil(totalRecords / parseInt(limit))
       return totalPage
     },
 
+    /**
+     * - Xử lí lấy các query trên url
+     * - Author: DDKhang (1/7/2023)
+     */
     handleQueryUrl() {
       const { page, limit } = this.$route.query
       const skip = (parseInt(page) - 1) * parseInt(limit)
@@ -35,28 +79,51 @@ export default {
 
   methods: {
     // Methods xử lí chuyển tiếp trang
+    /**
+     * - Thực hiện xử lí đi đến trang đầu tiên
+     * - Author: DDKhang (1/7/2023)
+     */
     handlePageBtnPreviousHome() {
+      // Cập nhật thông tin trang
+      this.selectedPageNumber = 1
       this.$router.push({ query: { page: 1, limit: this.handleQueryUrl.limit } })
     },
 
+    /**
+     * - Thực hiện xử lí đến trang trước đó
+     * - Author: DDKhang (1/7/2023)
+     */
     handlePageBtnPrevious() {
       const { page, limit } = this.handleQueryUrl
       const minusPage = parseInt(page) - 1
+      // Cập nhật thông tin trang
+      this.selectedPageNumber = minusPage
       this.$router.push({ query: { page: minusPage <= 0 ? 1 : minusPage, limit: limit } })
     },
 
     // Methods xử lí trang tiếp theo
+    /**
+     * - Thực hiện xử lí đi đến trang tiếp theo
+     * - Author: DDKhang (1/7/2023)
+     */
     handlePageBtnNext() {
       const { page, limit } = this.handleQueryUrl
       const totalPage = this.calcTotalPage
       const incrementPage = parseInt(page) + 1
+      // Cập nhật thông tin trang
+      this.selectedPageNumber = incrementPage
       this.$router.push({
         query: { page: incrementPage >= totalPage ? totalPage : incrementPage, limit: limit }
       })
     },
-
+    /**
+     * - Thực hiện xử lí đi đến trang cuối
+     * - Author: DDKhang (1/7/2023)
+     */
     handlePageBtnNextEnd() {
       const { limit } = this.handleQueryUrl
+      // Cập nhật thông tin trang
+      this.selectedPageNumber = this.calcTotalPage
       this.$router.push({
         query: { page: this.calcTotalPage, limit: limit }
       })
@@ -66,19 +133,31 @@ export default {
     /**
      *
      * @param {*} event - Đối tượng sự kiện mặc định
-     * - Thực hiện bắt sự thay đổi dữ liệu trên thẻ input
+     * - Thực hiện bắt sự thay đổi dữ liệu trên thẻ input chọn trang
+     * - Author: DDKhang (1/7/2023)
      */
     handleChangePageNumber(event) {
       const { value } = event.target
       this.selectedPageNumber = value
+
+      // this.$router.push({ query: { page: value, limit: this.handleQueryUrl.limit } })
     },
 
     /**
      * - Bắt sự kiện enter trên input
+     * - Author: DDKhang (1/7/2023)
      */
     handleSelectedInputEnter() {
       const { limit } = this.handleQueryUrl
-      this.$router.push({ query: { page: this.selectedPageNumber, limit } })
+      // Nếu số trang lớn hơn số trang hiện tại thì chỉ lấy trang hiện tại
+      let newPageNumber = this.selectedPageNumber
+
+      if (this.selectedPageNumber > this.calcTotalPage) {
+        newPageNumber = this.calcTotalPage
+      } else if (this.selectedPageNumber < 0) {
+        newPageNumber = 1
+      }
+      this.$router.push({ query: { page: newPageNumber, limit } })
     },
 
     /**
@@ -88,7 +167,56 @@ export default {
      * - Author: DDKhang (1/7/2023)
      */
     restrictNonNumeric(event) {
-      inputFunctions.restrictNonNumeric(event)
+      InputFunctions.restrictNonNumeric(event)
+    },
+
+    // ##### Xử lí combobox
+    /**
+     * - Thực hiện thêm các class tương ứng để điều chỉnh combobox
+     * - Author: DDKhang (1/7/2023)
+     */
+    handleCustomClassCombobox() {
+      return {
+        borderLeftNone: 'border-left--none',
+        listItemTop: 'list-item--top',
+        backgroundWhite: 'backgroundColor--white',
+        widthInput: 'width-50'
+      }
+    },
+
+    /**
+     * @param {object} option - Gía trị Option của combobox
+     * - Thực hiện xử lí chọn option của combobox
+     * - Author: DDKhang (1/7/2023)
+     */
+    handleChooseQualityRecord(option) {
+      const { page } = this.handleQueryUrl
+      const { value } = option
+      const menuFoods = this.menuFoodsStore.getDataStore()
+      const totalRecords = menuFoods.TotalRecordsResult
+      let newPage = page
+
+      // Số trang sau khi chọn số bản ghi
+      const pageAfterChoose = Math.ceil(parseInt(totalRecords) / value)
+
+      // Xử lí tạo trang tương ứng trong các trường hợp
+      if (totalRecords - this.handleQueryUrl.skip < value) {
+        newPage = pageAfterChoose
+      } else if (pageAfterChoose < this.handleQueryUrl.page) {
+        newPage = pageAfterChoose
+      }
+      // Nếu số lượng bản ghi lấy ra lớn hơn số bản ghi ở trang hiện tại thì cần tính toán lại page mới
+
+      this.$router.push({ query: { page: newPage, limit: value } })
+    },
+
+    /**
+     * - Thực hiện tải lại dữ liệu (theo các điều kiện đã tồn tại)
+     * - Author: DDKhang (1/7/2023)
+     */
+    handleLoadAgainRecords() {
+      // Phát tín hiệu lên MenuListView.vue
+      this.$msemitter.emit(this.$EmitterEnum.loadAgainRecords, this.handleQueryUrl.page)
     }
   }
 }
@@ -150,7 +278,7 @@ export default {
           type="text"
           class="page-number"
           @input="handleChangePageNumber"
-          :value="this.selectedPageNumber"
+          :value="this.handleQueryUrl.page"
           @keydown="restrictNonNumeric"
           @keydown.enter="handleSelectedInputEnter"
           style="width: 30px"
@@ -195,6 +323,7 @@ export default {
       <MISATooltip positionTooltip="tooltip-top">
         <template #tooltip-explain>
           <MISAButton
+            @click="handleLoadAgainRecords"
             class="border-default-none border-transparent button-footer footer-panel__btnRefreshCondition"
             ><Icon icon="ic:sharp-refresh" color="#9e9e9e" width="25" height="25" />
           </MISAButton>
@@ -206,13 +335,23 @@ export default {
 
       <span class="footer-panel__separate"></span>
       <!-- Combobox choose quality records -->
-      <div class="footer-panel__combobox-quality-record">Combobox</div>
+      <div class="footer-panel__combobox-quality-record">
+        <MISACombobox
+          ref="comboboxRef"
+          :customClass="this.handleCustomClassCombobox()"
+          placeholderInput="30"
+          v-model="this.comboboxValue"
+          :listItemValue="this.optionsNumberRecord"
+          :defaultValueInput="this.defaultValue"
+          :handleChooseRecord="this.handleChooseQualityRecord"
+        ></MISACombobox>
+      </div>
     </div>
     <div class="footer__show-info-table">
       <span
         >Hiển thị {{ this.handleQueryUrl.skip + 1 }} -
-        {{ this.handleQueryUrl.skip + parseInt(this.handleQueryUrl.limit) }} trên
-        {{ this.menuFoodsStore.getDataStore().TotalRecordsResult }} kết quả</span
+        {{ this.handleQueryUrl.skip + parseInt(this.menuFoodsStore.getDataStore().Data?.length) }}
+        trên {{ this.menuFoodsStore.getDataStore().TotalRecordsResult }} kết quả</span
       >
     </div>
   </footer>

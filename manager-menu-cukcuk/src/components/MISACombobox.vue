@@ -34,6 +34,11 @@ export default {
       type: Number
     },
     typeCombobox: {
+      // Thể loại combobox
+      type: String
+    },
+    dataTypesFilter: {
+      // Kiểu dữ liệu giá trị của thành phần
       type: String
     }
   },
@@ -65,7 +70,7 @@ export default {
      */
     defaultValueInput: {
       handler(newVal) {
-        console.log('defaultValueInput: ', this.defaultValueInput)
+        // console.log('defaultValueInput: ', this.defaultValueInput)
         // Cần phải kiểm tra xem có giá trị default bởi khi thực hiện "Thêm" thì khi nhấn sang, thực hiện trên input datetime, radio... thì dẫn đến giá trị trên input checkbox thành undifined
         if (newVal && newVal.id) {
           this.value = newVal ?? { id: '', value: '' }
@@ -146,8 +151,17 @@ export default {
       this.selectedIndex = index
 
       let newItem = { ...item }
+      if (this.dataTypesFilter) {
+        newItem = {
+          ...newItem,
+          dataTypesFilter: this.dataTypesFilter
+        }
+      }
       if (this.typeCombobox) {
-        newItem = { ...newItem, typeCombobox: this.typeCombobox }
+        newItem = {
+          ...newItem,
+          typeCombobox: this.typeCombobox
+        }
       }
       // Callback lấy số bản ghi được chọn
       this.handleChooseRecord(newItem)
@@ -270,14 +284,14 @@ export default {
           // Tham chieu len thẻ cha (".formGroup")
           const tagParent = tagCurrent.closest('.form-group')
           tagParent.classList.add('invalid')
-          tagCurrent.setAttribute('title', this.$MISAResource.textError.textErrorRequiredUnit)
-        } else {
-          // Tham chieu len thẻ cha (".formGroup")
-          // const tagParent = tagCurrent.closest(".form-group");
-          // tagParent.classList.remove("invalid");
-          // Thực hiện thông báo lỗi khi cung cấp sai thông tin phòng ban
-          tagCurrent.setAttribute('title', 'Thông tin phòng ban chưa chính xác')
         }
+        // else {
+        //   // Tham chieu len thẻ cha (".formGroup")
+        //   // const tagParent = tagCurrent.closest(".form-group");
+        //   // tagParent.classList.remove("invalid");
+        //   // Thực hiện thông báo lỗi khi cung cấp sai thông tin phòng ban
+        //   tagCurrent.setAttribute('title', 'Thông tin phòng ban chưa chính xác')
+        // }
       }
     },
     /**
@@ -479,6 +493,10 @@ export default {
   background-color: var(--background-item-selected);
 }
 
+.inputCombobox {
+  width: 100%;
+}
+
 .border--none .inputCombobox {
   border: none;
 }
@@ -539,10 +557,14 @@ export default {
 
 .invalid .inputCombobox {
   border-right: none !important;
+  border: 1px solid #cf4c35;
 }
 
+.invalid .comboboxNew__content {
+  border: none;
+}
 .invalid .comboboxNew__content--icon {
-  border: 1px solid #e61d1d;
+  border: 1px solid #cf4c35;
   border-left: none;
 }
 </style>

@@ -59,6 +59,7 @@ export default {
   border-radius: var(--border-radius-primary);
   box-shadow: 0px 3px 25px rgba(124, 130, 141, 0.2);
   min-width: 80px;
+  max-width: 200px;
   padding: 3px;
 }
 

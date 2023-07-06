@@ -6,6 +6,20 @@ export default {
   props: {
     objDialog: {
       type: Object
+      /** 
+        {
+          titleDialog: 'CUKCUK-Quản lí nhà hàng',
+          contentDialog: 'Nội dụng thông báo Nội dụng thông báoNội dụng thông báo',
+          iconContent: {
+            name: 'ph:question-fill',
+            color: '#0072bc'
+          },
+          isBtnHave: true,
+          isBtnNo: true,
+          isBtnCancel: false,
+          isBtnAgree: false
+        },
+      */
     },
     handleChooseBtnPanelOnDialog: {
       type: Function
@@ -16,8 +30,13 @@ export default {
     return {}
   },
   methods: {
+    /**
+     *
+     * @param {*} typeBtn - Kiểu nút bấm chọn
+     * - Author: DDKhang (30/6/2023)
+     */
     handleChooseBtnPanel(typeBtn) {
-      this.handleChooseBtnPanelOnDialog(typeBtn)
+      this.handleChooseBtnPanelOnDialog(typeBtn, this.objDialog.typeHandle)
     }
   }
 }

@@ -4,67 +4,22 @@ import MISAPopupInput from '@/components/MISAPopupInput.vue'
 import MainListFooter from './MainListFooter.vue'
 import MISACombobox from '../../components/MISACombobox.vue'
 import MISAPopupRightClick from '../../components/MISAPopupRightClick.vue'
-import { deleteMultiple, postData } from '../../utils/FetchData'
-import BaseUrl from '../../utils/BaseUrl'
+import { deleteMultiple } from '../../utils/FetchData'
 import TheLoading from '../../components/TheLoading.vue'
 
 import MISACheckbox from '../../components/MISACheckbox.vue'
 import { filterInfoEntity } from '../../utils/FetchData'
 import { useMenuFoodStore } from '../../stores/menuFood'
+import MISADialog from '../../components/MISADialog.vue'
+import ContentCombobox from '../../resources/contents/ContentCombobox'
 
 export default {
   data() {
     return {
       listToolbarItem: null, // Danh sách toolbar table
-      optionsFoodTypeRecord: [
-        {
-          id: 'ft-1',
-          value: 'Tất cả',
-          valueFilter: 1,
-          typeCondition: '=',
-          property: 'TypeFoodId',
-          type: 'GUID',
-          addition: 'and'
-        },
-        {
-          id: 'ft-2',
-          value: 'Món ăn',
-          valueFilter: 2,
-          typeCondition: '=',
-          property: 'TypeFoodId',
-          type: 'GUID',
-          addition: 'and'
-        },
-        {
-          id: 'ft-3',
-          value: 'Đồ uống',
-          valueFilter: 3,
-          typeCondition: '=',
-          property: 'TypeFoodId',
-          type: 'GUID',
-          addition: 'and'
-        }
-      ],
-      optionsStopSelling: [
-        {
-          id: 'ss-1',
-          value: 'Có',
-          valueFilter: 1, // Tìm kiếm theo điều kiện có
-          typeCondition: '=',
-          property: 'StopSelling',
-          type: 'int',
-          addition: 'and'
-        },
-        {
-          id: 'ss-2',
-          value: 'Không',
-          valueFilter: 0, // Tìm kiếm theo điều kiện không
-          typeCondition: '=',
-          property: 'StopSelling',
-          type: 'int',
-          addition: 'and'
-        }
-      ],
+      optionsFoodTypeRecord: [],
+      optionsStopSelling: [],
+      optionsShowOnMenu: [],
       // ##### --- Biến khởi tạo cho popup right click --- #####
       isShowPopupRightClick: false, // Trạng thái đóng mở  "popup right click"
       popupX: 0, // Vị trí hiển thị popup theo trục x
@@ -72,11 +27,18 @@ export default {
 
       // ##### --- Biến khởi tạo cho chọn nhiều dòng trên bảng --- #####
       selectedRows: [], // Chứa các dòng được chọn trên table
+      selectedRowRightClick: [], // Chứa dòng được chọn khi click chuộ phải trên table
       filterOptions: [], // Chứa các thuộc tính được lọc
       menuFoods: [],
+      // ##### --- Biển khởi tạo Loading
       loading: false,
       loadingProgress: 0,
-      menuFoodStore: useMenuFoodStore()
+      menuFoodStore: useMenuFoodStore(), // Kho quản lí state
+
+      // ##### --- Biến khởi tạo dialog thông báo
+      objDialog: {}, // Chứa các thuộc tính để thực hiện hiển thị | thao tác trên dialog thông báo
+      isDialogNotification: false, // Trạng thái đóng mở dialog
+      typePerform: {} // Kiểu thực hiện khi bấm nút trên dialog
     }
   },
   components: {
@@ -86,18 +48,43 @@ export default {
     MISACombobox,
     MISAPopupRightClick,
     MISACheckbox,
-    TheLoading
+    TheLoading,
+    MISADialog
   },
   created() {
     // Thực hiện lấy danh sách toolbar table
     this.listToolbarItem = this.$ResourceToolbarTable.toolbarItems
+    // Thực hiện lấy danh sách nội dung combobox
+    this.optionsFoodTypeRecord = ContentCombobox.optionsFoodTypeRecord
+    this.optionsStopSelling = ContentCombobox.optionsStopSelling
+    this.optionsShowOnMenu = ContentCombobox.optionsShowOnMenu
+    // Lấy dữ liệu ban đầu
     this.fetchData()
+
+    this.$msemitter.on(this.$EmitterEnum.loadAgainRecords, this.loadData)
+    this.$msemitter.on(this.$EmitterEnum.refreshPage, this.fetchData)
+    // this.$msemitter.on(this.$EmitterEnum.handleDuplicate, this.handleBtnDuplicate)
   },
   mounted() {
     window.addEventListener('click', this.handleClosePopupContent)
   },
   beforeUnmount() {
     window.removeEventListener('click', this.handleClosePopupContent)
+
+    this.$msemitter.off(this.$EmitterEnum.loadAgainRecords, this.loadData)
+    this.$msemitter.off(this.$EmitterEnum.refreshPage, this.fetchData)
+    // this.$msemitter.off(this.$EmitterEnum.handleDuplicate, this.handleBtnDuplicate)
+  },
+  computed: {
+    /**
+     * - Xử lí lấy các query trên url
+     * - Author: DDKhang (1/7/2023)
+     */
+    handleQueryUrl() {
+      const { page, limit } = this.$route.query
+      const skip = (parseInt(page) - 1) * parseInt(limit)
+      return { page, limit, skip }
+    }
   },
   watch: {
     '$route.query': {
@@ -107,23 +94,47 @@ export default {
     }
   },
   methods: {
+    /**
+     * - Thực hiện lấy danh sách dữ liệu ban đầu
+     * - Author: DDKhang (30/6/2023)
+     */
     async fetchData() {
+      this.loading = true
       const formatOptionFilter = {
         Page: 1,
         Start: 0,
         Limit: 30,
         Filters: []
       }
+
       this.$router.push({
         query: { page: formatOptionFilter.Page, limit: formatOptionFilter.Limit }
       })
+
+      const intervalId = setInterval(() => {
+        if (this.loadingProgress < 100) {
+          this.loadingProgress += 8
+        } else {
+          clearInterval(intervalId)
+          this.loading = false
+        }
+      }, 2000)
+      this.filterOptions = []
       const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+      this.loadingProgress = 100
       this.menuFoods = res.data.Data
       // Đặt giá trị cho store
       this.menuFoodStore.setDataFilter(res.data)
+      this.loading = false
     },
 
+    /**
+     * - Lấy dữ liệu từ các thông tin page và limit
+     * - Author: DDKhang (30/6/2023)
+     */
     async fetchDataByPageAndLimit() {
+      this.loading = true
+
       const { page, limit } = this.$route.query
       if (page && limit) {
         const formatOptionFilter = {
@@ -132,10 +143,25 @@ export default {
           Limit: limit,
           Filters: []
         }
+        let newFormatOptionFilter = formatOptionFilter
+        // Nếu mà có giá trị filter thì thực hiện hiển thị trang tương ứng với các giá trị filter đó
+        if (this.filterOptions.length > 0) {
+          newFormatOptionFilter = { ...formatOptionFilter, Filters: [...this.filterOptions] }
+        }
 
-        const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+        const intervalId = setInterval(() => {
+          if (this.loadingProgress < 100) {
+            this.loadingProgress += 8
+          } else {
+            clearInterval(intervalId)
+            this.loading = false
+          }
+        }, 2000)
+        const res = await filterInfoEntity(this.$EntityNameEnum.Foods, newFormatOptionFilter)
+        this.loadingProgress = 100
         this.menuFoods = res.data.Data
         this.menuFoodStore.setDataFilter(res.data)
+        this.loading = false
       }
     },
 
@@ -155,6 +181,19 @@ export default {
             this.handleEditRowItem(this.selectedRows[0].FoodId)
           }
           break
+        case this.$TypeToolbarBtnEnum.duplicate:
+          if (this.selectedRows.length > 0) {
+            this.handleBtnDuplicate(this.selectedRows[0].FoodId)
+          }
+          break
+        case this.$TypeToolbarBtnEnum.delete:
+          if (this.selectedRows.length > 0) {
+            this.handleDialogBtnDelete()
+          }
+          break
+        case this.$TypeToolbarBtnEnum.refresh:
+          this.handleBtnRefesh()
+          break
       }
     },
 
@@ -169,10 +208,19 @@ export default {
     },
 
     // ##### --- Methods Popup right click - Start --- #####
+    /**
+     *
+     * @param {*} event - Sự kiện
+     * @param {*} row - Dòng hiện tại bấm chuột phải
+     * - Author: DDKhang (24/6/2023)
+     */
     showPopupRightClickAt(event, row) {
       this.isShowPopupRightClick = true
       this.popupX = event.clientX
       this.popupY = event.clientY
+
+      // Thực hiện chỉ chọn vào dòng nhấn chuột phải
+      this.selectedRowRightClick = [row]
 
       // Kiểm tra dòng đã tồn tại trong danh sách dòng đã lựa chọn trước đó
       const isRowItemExist = this.selectedRows.indexOf(row)
@@ -206,14 +254,16 @@ export default {
           console.log('Create')
           break
         case this.$TypeToolbarBtnEnum.duplicate:
+          this.handleBtnDuplicate(this.selectedRowRightClick[0].FoodId)
           console.log('duplicate')
           break
         case this.$TypeToolbarBtnEnum.edit:
+          this.handleEditRowItem(this.selectedRowRightClick[0].FoodId)
           console.log('edit')
           break
         case this.$TypeToolbarBtnEnum.delete:
           console.log('delete')
-          this.handleBtnDelete()
+          this.handleDialogBtnDelete()
           break
         case this.$TypeToolbarBtnEnum.refresh:
           console.log('refresh')
@@ -261,36 +311,26 @@ export default {
     // --- End ---
 
     // ##### --- Methods Thực hiện lọc trên cột tương ứng - Start --- #####
-    handleChooseRecordCombobox(option) {
+    /**
+     *
+     * @param {*} option - Gía trị chọn của combobox
+     * - Thực hiện thao tác với thông tin đã chọn
+     * - Author: DDKhang (30/6/2023)
+     */
+    async handleChooseRecordCombobox(option) {
       const filterOptions = [...this.filterOptions]
+      let newOptionFilter = []
       if (filterOptions.length === 0) {
         // Thực hiện thêm đối tượng vào mảng
-        const optionNewFilter = {}
-        optionNewFilter.xType = 'filter'
-        optionNewFilter.isCreateFromFilterRow = true
-        optionNewFilter.property = option.property
-        optionNewFilter.operator = option.typeCondition
-        optionNewFilter.value = option.valueFilter
-        ;(optionNewFilter.addition = option.addition),
-          (optionNewFilter.group = option.property + 'FromFilterRow')
-
+        const optionNewFilter = this.formatOptionFilter(option)
+        newOptionFilter.push(optionNewFilter)
         this.filterOptions.push(optionNewFilter)
       } else {
         let isFlagReplace = false
         // Kiểm tra option đã tồn tại trong filterOptions
-        const newOptionFilter = filterOptions.map((fo) => {
-          console.log('fo.property: ', fo.property)
-          console.log('Condition: ', fo.property === option.property)
+        newOptionFilter = filterOptions.map((fo) => {
           if (fo.property === option.property) {
-            const optionNewFilter = {}
-            optionNewFilter.xType = 'filter'
-            optionNewFilter.isCreateFromFilterRow = true
-            optionNewFilter.property = option.property
-            optionNewFilter.operator = option.typeCondition
-            optionNewFilter.value = option.valueFilter
-            ;(optionNewFilter.addition = option.addition),
-              (optionNewFilter.group = option.property + 'FromFilterRow')
-
+            const optionNewFilter = this.formatOptionFilter(option)
             isFlagReplace = true
             return optionNewFilter
           }
@@ -298,23 +338,35 @@ export default {
         })
 
         if (!isFlagReplace) {
-          const optionNewFilterAdd = {}
-          optionNewFilterAdd.xType = 'filter'
-          optionNewFilterAdd.isCreateFromFilterRow = true
-          optionNewFilterAdd.property = option.property
-          optionNewFilterAdd.operator = option.typeCondition
-          optionNewFilterAdd.value = option.valueFilter
-          ;(optionNewFilterAdd.addition = option.addition),
-            (optionNewFilterAdd.group = option.property + 'FromFilterRow')
-
+          const optionNewFilterAdd = this.formatOptionFilter(option)
           newOptionFilter.push(optionNewFilterAdd)
         }
-        console.log('NewOptionFilter: ', newOptionFilter)
         this.filterOptions = newOptionFilter
       }
-      console.log('Option: ', option)
+
+      // Cấu hình lại dữ liệu gửi lên để lọc
+      const formatOptionFilter = {
+        Page: 1,
+        Start: 0,
+        Limit: this.handleQueryUrl.limit,
+        Filters: [...newOptionFilter]
+      }
+      // Để ngăn trường hợp khi bấm btn "Tải lại" sẽ lấy giá trị page hiện tại trên url hiện tại làm giá giá filter (điều này có thể dẫn đến lấy ra số lượng giá trị hiển thị không đúng)
+      this.$router.push({
+        query: { page: formatOptionFilter.Page, limit: formatOptionFilter.Limit }
+      })
+
+      const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+      this.menuFoodStore.setDataFilter(res.data)
+      this.menuFoods = res.data.Data
     },
 
+    /**
+     *
+     * @param {*} option - Gía trị thuộc tính muốn lọc
+     * - Thực hiện cấu trúc các trường thông tin cần lọc
+     * - Author: DDKhang (3/7/2023)
+     */
     formatOptionFilter(option) {
       // Thực hiện thêm đối tượng vào mảng
       const optionNewFilter = {}
@@ -322,7 +374,7 @@ export default {
       optionNewFilter.isCreateFromFilterRow = true
       optionNewFilter.property = option.property
       optionNewFilter.operator = option.typeCondition
-      optionNewFilter.value = option.valueFilter
+      optionNewFilter.value = option.valueFilter.trim()
       optionNewFilter.type = option.dataTypesFilter
       ;(optionNewFilter.addition = option.addition),
         (optionNewFilter.group = option.property + 'FromFilterRow')
@@ -362,7 +414,7 @@ export default {
           })
 
           if (!isFlagPushOption) {
-            // Nếu option đó chưa tồn tại
+            // Nếu option đó chưa tồn tại -> Thực hiện thêm option
             const optionNewFilterAdd = this.formatOptionFilter(option)
             newOptionFilter.push(optionNewFilterAdd)
           }
@@ -373,15 +425,17 @@ export default {
         const formatOptionFilter = {
           Page: 1,
           Start: 0,
-          Limit: 20,
+          Limit: this.handleQueryUrl.limit,
           Filters: [...newOptionFilter]
         }
+        // Để ngăn trường hợp khi bấm btn "Tải lại" sẽ lấy giá trị page hiện tại trên url hiện tại làm giá giá filter (điều này có thể dẫn đến lấy ra số lượng giá trị hiển thị không đúng)
+        this.$router.push({
+          query: { page: formatOptionFilter.Page, limit: formatOptionFilter.Limit }
+        })
 
-        const res = await postData(`${BaseUrl}/Foods/filter`, formatOptionFilter)
-        console.log('Res filter: ', res)
+        const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+        this.menuFoodStore.setDataFilter(res.data)
         this.menuFoods = res.data.Data
-
-        console.log('Option: ', option)
       } catch (error) {
         console.log('error: ', error)
       }
@@ -395,14 +449,76 @@ export default {
     // --- End ---
 
     // ##### --- Methods xử lí chọn button để xử lí --- Start #####
+    /**
+     * - Hiển thị dialog thông báo cho btn delete
+     * - Author: DDKhang (3/7/2023)
+     */
+    handleDialogBtnDelete() {
+      // Cấu tạo câu thông báo
+      let sentenceNotifi = ''
+      if (this.selectedRows.length > 1) {
+        sentenceNotifi = this.$ResourceDialogNotification.deleteMulti
+      } else {
+        const foodInfo = this.selectedRows[0]
+        sentenceNotifi = `Bạn có chắc chắn muốn xóa món <<${foodInfo.FoodCode} - ${foodInfo.FoodName} >> không?.`
+      }
+
+      // Thực hiện thông báo hỏi xác nhận xóa
+      // 1. Tạo dialog thông báo hỏi
+      this.objDialog = {
+        titleDialog: this.$ResourceDialogNotification.titleDialog,
+        contentDialog: sentenceNotifi,
+        iconContent: {
+          name: 'ph:question-fill',
+          color: '#0072bc'
+        },
+        typeHandle: this.$TypeBtnDialogEnum.TypeHandleTask.deleteElement,
+        isBtnHave: true,
+        isBtnNo: true,
+        isBtnCancel: false,
+        isBtnAgree: false
+      }
+      // 2. Mở dialog form
+      this.isDialogNotification = true
+    },
+
+    /**
+     * - Thực xử lí bấm nút xóa trên popup right click | toolbar
+     * - Author: DDKhang (30/6/2023)
+     */
     async handleBtnDelete() {
       const listFoodIds = this.selectedRows.map((f) => {
         return f.FoodId
       })
       const strFoodListIds = listFoodIds.join(',')
       await deleteMultiple(this.$EntityNameEnum.Foods, strFoodListIds)
+      // Thực hiện Tải lại dữ liệu
+      this.loadData(this.handleQueryUrl.page)
+
+      // Hiển thị toast thông báo
+      // 1. Thông tin thông báo
+      const toastInfo = {
+        status: this.$ResourceToast.DeleteEntity.DeleteSuccess.status,
+        msg: this.$ResourceToast.DeleteEntity.DeleteSuccess.msg
+      }
+      // 2. Phát lên App.vue -> để hiển thị Toast
+      this.$msemitter.emit(this.$EmitterEnum.showToast, toastInfo, 5000)
     },
 
+    /**
+     *
+     * @param {*} entityId - Mã đối tượng muốn nhân bản
+     * - Author: DDKhang (3/7/2023)
+     *
+     */
+    async handleBtnDuplicate(entityId) {
+      this.$router.push(`/menu/${entityId}?type=duplicate`)
+    },
+
+    /**
+     * - Thực hiện làm mới dữ liệu theo các điều kiện
+     * - Author: DDKhang (30/6/2023)
+     */
     async handleBtnRefesh() {
       this.loadData()
     },
@@ -414,7 +530,7 @@ export default {
      * CreateAt: 30/6/2023
      * ModifierAt: 30/6/2023
      */
-    async loadData() {
+    async loadData(pagePresent = 1) {
       this.loading = true
       try {
         const intervalId = setInterval(() => {
@@ -425,16 +541,20 @@ export default {
             this.loading = false
           }
         }, 2000)
-        this.$router.push('/menu?page=1&limit=30')
+        const { limit } = this.$route.query
+        this.$router.push({ query: { page: pagePresent, limit } })
+        // Cấu hình lại dữ liệu gửi lên để lọc
         const formatOptionFilter = {
-          Page: 1,
+          Page: pagePresent,
           Start: 0,
-          Limit: 30,
-          Filters: []
+          Limit: limit,
+          Filters: [...this.filterOptions]
         }
+
         const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
         this.loadingProgress = 100
         this.menuFoods = res.data.Data
+        this.menuFoodStore.setDataFilter(res.data)
         this.loading = false
 
         // Phát thông tin của các bản record -> EmployeeHomeFooter.vue
@@ -443,15 +563,58 @@ export default {
         console.log(error)
         this.isLoading = false
       }
-    }
-
+    },
     // ##### --- Methods xử lí chọn button để xử lí --- End #####
+
+    // ##### --- Methods xử lí trên dialog thông báo --- Start #####
+    /**
+     *
+     * @param {*} typeBtn - Kiểu button dialog
+     * - Thực hiện xử lí tác vụ của từng loại button trên dialog
+     * - Author: DDKhang (23/6/2023)
+     */
+    handleChooseBtnPanelOnDialog(typeBtn, typeHandle) {
+      switch (typeBtn) {
+        case this.$TypeBtnDialogEnum.Have:
+          if (typeHandle === this.$TypeBtnDialogEnum.TypeHandleTask.deleteElement) {
+            this.handleBtnDelete()
+          }
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+        case this.$TypeBtnDialogEnum.No:
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+        case this.$TypeBtnDialogEnum.Cancel:
+          // Thực hiện đóng dialog thông báo:
+          this.isDialogNotification = false
+          break
+        case this.$TypeBtnDialogEnum.Agree:
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+      }
+    },
+    // ##### --- Methods xử lí trên dialog thông báo --- End #####
+
+    handleCustomClassPopupInput() {
+      return {
+        textAlignEnd: 'textAlignEnd'
+      }
+    }
   }
 }
 </script>
 
 <template>
   <TheLoading v-if="this.loading" :loadingProgress="this.loadingProgress" />
+  <MISADialog
+    v-if="this.isDialogNotification"
+    :objDialog="this.objDialog"
+    :handleChooseBtnPanelOnDialog="handleChooseBtnPanelOnDialog"
+  >
+  </MISADialog>
   <main class="main-content">
     <!-- <MenuDialogForm /> -->
     <router-view name="MenuDialogFormRouterView"></router-view>
@@ -513,7 +676,8 @@ export default {
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
                     dataTypesFilter="string"
-                    propertyDb="foodCode"
+                    propertyDb="FoodCode"
+                    :contentPopup="this.$ContentPopup.PopupNormal"
                     :handleFilterPopupInput="handleFilterPopupInput"
                     :defaultOptionPopupInput="this.$ContentPopup.PopupNormal[0]"
                   />
@@ -534,16 +698,28 @@ export default {
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Nhóm thực đơn</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISAPopupInput
+                    dataTypesFilter="string"
+                    propertyDb="MenuGroupName"
+                    :contentPopup="this.$ContentPopup.PopupNormal"
+                    :handleFilterPopupInput="handleFilterPopupInput"
+                    :defaultOptionPopupInput="this.$ContentPopup.PopupNormal[0]"
+                  />
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
                 <div class="table-menu__title-col">Đơn vị tính</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISAPopupInput
+                    dataTypesFilter="string"
+                    propertyDb="FoodUnitName"
+                    :contentPopup="this.$ContentPopup.PopupNormal"
+                    :handleFilterPopupInput="handleFilterPopupInput"
+                    :defaultOptionPopupInput="this.$ContentPopup.PopupNormal[0]"
+                  />
                 </div>
               </th>
-              <th class="table-menu__theadItem-filter">
+              <th class="table-menu__theadItem-filter width-100">
                 <div class="table-menu__title-col">Giá bán</div>
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
@@ -552,6 +728,7 @@ export default {
                     :contentPopup="this.$ContentPopup.PopupPrice"
                     :handleFilterPopupInput="handleFilterPopupInput"
                     :defaultOptionPopupInput="this.$ContentPopup.PopupPrice[2]"
+                    :customClass="handleCustomClassPopupInput()"
                   />
                 </div>
               </th>
@@ -582,16 +759,22 @@ export default {
                   />
                 </div>
               </th> -->
-              <th class="table-menu__theadItem-filter">
+              <th class="table-menu__theadItem-filter width-200 min-width-200">
                 <div class="table-menu__title-col">Hiển thị trên thực đơn</div>
                 <div class="table-menu-thead__filter">
-                  <MISAPopupInput />
+                  <MISACombobox
+                    dataTypesFilter="int"
+                    :customClass="handleCustomClassCombobox()"
+                    :listItemValue="this.optionsShowOnMenu"
+                    :handle-choose-record="handleChooseRecordCombobox"
+                  />
                 </div>
               </th>
-              <th class="table-menu__theadItem-filter">
+              <th class="table-menu__theadItem-filter width-200 min-width-120">
                 <div class="table-menu__title-col">Ngừng bán</div>
                 <div class="table-menu-thead__filter">
                   <MISACombobox
+                    dataTypesFilter="int"
                     :customClass="handleCustomClassCombobox()"
                     :listItemValue="this.optionsStopSelling"
                     :handle-choose-record="handleChooseRecordCombobox"
@@ -609,29 +792,40 @@ export default {
               @dblclick="handleEditRowItem(food.FoodId)"
             >
               <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
-                {{ food.TypeFoodName }}
+                <!-- {{ food.TypeFoodName }} -->
+                <div>Món ăn</div>
+              </td>
+              <td class="width-200" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                <div>{{ food.FoodCode }}</div>
+              </td>
+              <td class="max-width-300" @contextmenu.prevent="showPopupRightClickAt($event, food)">
+                <div class="text-ellipsis">
+                  {{ food.FoodName }}
+                </div>
               </td>
               <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
-                {{ food.FoodCode }}
+                <div>{{ food.MenuGroupName }}</div>
               </td>
               <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
-                {{ food.FoodName }}
+                <div>{{ food.FoodUnitName }}</div>
               </td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
-                {{ food.MenuGroupName }}
-              </td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
-                {{ food.FoodUnitName }}
-              </td>
-              <td class="" @contextmenu.prevent="showPopupRightClickAt($event, food)">
-                {{ food.Price }}
+              <td
+                class=""
+                style="text-align: end"
+                @contextmenu.prevent="showPopupRightClickAt($event, food)"
+              >
+                <div>{{ food.Price }}</div>
               </td>
               <td
                 class=""
                 @contextmenu.prevent="showPopupRightClickAt($event, food)"
                 style="text-align: center"
               >
-                <MISACheckbox class="disable" @dblclick.stop :checked="false" />
+                <MISACheckbox
+                  class="disable"
+                  @dblclick.stop
+                  :checked="food.ShowOnMenu ? true : false"
+                />
               </td>
               <td
                 class=""
@@ -861,5 +1055,31 @@ td {
 
 .selectedRow {
   background-color: var(--background-item-selected);
+}
+
+.max-width-300 {
+  max-width: 300px;
+}
+.max-width-200 {
+  max-width: 200px;
+}
+
+.min-width-200 {
+  min-width: 200px !important;
+}
+.min-width-120 {
+  min-width: 120px !important;
+}
+.width-150 {
+  width: 150px !important;
+}
+.width-100 {
+  width: 100px !important;
+}
+
+.text-ellipsis {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 </style>

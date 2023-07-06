@@ -21,6 +21,8 @@ import TypeComboboxEnum from './resources/enums/TypeComboboxEnum'
 import EntityNameEnum from './resources/enums/EntityNameEnum'
 import ContentPopup from './resources/contents/ContentPopup'
 import BehaviorHandleEnum from './resources/enums/BehaviorHandleEnum'
+import ResourceDialogNotification from './resources/resource/ResourceDialogNotification'
+import ResourceShortCut from './resources/resource/ResourceShortCut'
 
 const app = createApp(App)
 
@@ -33,11 +35,6 @@ globalProps.$axios = axios
 globalProps.$msemitter = emitter
 // Enums
 globalProps.$EmitterEnum = EmitterEnum
-
-// Resources
-globalProps.$ResourceNavbar = ResourceNavbar
-globalProps.$ResourceToolbarTable = ResourceToolbarTable
-globalProps.$ResourceDialogForm = ResourceDialogForm
 globalProps.$MagicNumber = MagicNumberEnum
 globalProps.$TypeFilterEnum = TypeFilterEnum
 globalProps.$TypeBtnDialogEnum = TypeBtnDialogEnum
@@ -45,9 +42,16 @@ globalProps.$TypeToolbarBtnEnum = TypeToolbarBtnEnum
 globalProps.$HttpStatusCodeEnum = HttpStatusCodeEnum
 globalProps.$TypeComboboxEnum = TypeComboboxEnum
 globalProps.$EntityNameEnum = EntityNameEnum
-globalProps.$ContentPopup = ContentPopup
 globalProps.$BehaviorHandleEnum = BehaviorHandleEnum
+
+// Resources
+globalProps.$ResourceNavbar = ResourceNavbar
+globalProps.$ResourceToolbarTable = ResourceToolbarTable
+globalProps.$ResourceDialogForm = ResourceDialogForm
+globalProps.$ContentPopup = ContentPopup
 globalProps.$ResourceToast = ResourceToast
+globalProps.$ResourceDialogNotification = ResourceDialogNotification
+globalProps.$ResourceShortCut = ResourceShortCut
 
 app.mount('#app')
 

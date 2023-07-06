@@ -2,6 +2,7 @@
 import MISAButton from '../../../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
 import { getDataById } from '../../../utils/FetchData'
+import InputFunctions from '../../../utils/functions/InputFunctions'
 export default {
   name: 'FormServiceHobby',
   props: {
@@ -38,7 +39,7 @@ export default {
       this.$emit('update:food', { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby })
       // Thực hiện cập nhật giá trị sở thích phục vụ cho nội dung con
       this.foodChild = { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby }
-    }
+    },
 
     // 'food.FoodServiceHobby': {
     //   async handler() {
@@ -64,6 +65,12 @@ export default {
     //     this.foodChild = { ...this.foodValue }
     //   }
     // }
+    food: {
+      deep: true,
+      handler(newValue) {
+        this.foodChild = newValue
+      }
+    }
   },
   computed: {
     /**
@@ -144,6 +151,16 @@ export default {
      */
     handleGetIndexLine(index) {
       this.selectIndexLine = index
+    },
+
+    /**
+     *
+     * @param {*} event - Đối tượng sự kiện
+     * - Thực hiện chỉ cho phép nhập Number vào input
+     * - Author: DDKhang (1/7/2023)
+     */
+    restrictNonNumeric(event) {
+      InputFunctions.restrictNonNumeric(event)
     }
   }
 }
@@ -196,15 +213,19 @@ export default {
               :value="itemServiceHobby.ServiceHobbyName"
               @input="(event) => handleChangeInput(event, index)"
               class="input"
+              autocomplete="off"
             />
           </div>
           <div class="formItem-value formService__list-serviceByHobby-tbody-item-col-two">
             <input
               type="text"
+              style="text-align: end"
               name="MoreMoney"
               :value="itemServiceHobby.MoreMoney"
+              @keydown="restrictNonNumeric"
               @input="(event) => handleChangeInput(event, index)"
               class="input"
+              autocomplete="off"
             />
           </div>
         </div>

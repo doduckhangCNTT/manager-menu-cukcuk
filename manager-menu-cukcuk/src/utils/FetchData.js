@@ -2,6 +2,7 @@ import axios from 'axios'
 import BaseUrl from './BaseUrl'
 // import { CatchError } from '../functions/CatchError'
 import HttpStatusCodeEnum from '../resources/enums/HttpStatusCodeEnum'
+import { CatchError } from './functions/CatchError'
 
 /**
  *
@@ -15,7 +16,7 @@ export async function getData(url) {
     const res = await axios.get(url)
     return res
   } catch (error) {
-    // CatchError(error)
+    CatchError(error)
   }
 }
 
@@ -32,8 +33,7 @@ export async function postData(url, post) {
     const res = await axios.post(url, post)
     return res
   } catch (error) {
-    console.log(error)
-    // CatchError(error)
+    CatchError(error)
   }
 }
 
@@ -43,9 +43,18 @@ export async function postData(url, post) {
  * - Des: Thực hiện lấy mã code mới cho thực thể
  * - CreateBy: DDKhang (27/5/2023)
  */
-export async function getNewCode(entityName) {
-  const res = await getData(`${BaseUrl}/${entityName}/NewCode`)
-  return res
+export async function getNewCode(entityName, prefixData) {
+  let res
+  try {
+    if (prefixData) {
+      res = await getData(`${BaseUrl}/${entityName}/newCode?prefixEntity=${prefixData}`)
+    } else {
+      res = await getData(`${BaseUrl}/${entityName}/newCode`)
+    }
+    return res
+  } catch (error) {
+    CatchError(error)
+  }
 }
 
 /**
@@ -59,7 +68,7 @@ export async function getDataById(entityName, objGet) {
     const res = await postData(`${BaseUrl}/${entityName}/Ids`, objGet)
     return res
   } catch (error) {
-    // CatchError(error)
+    CatchError(error)
   }
 }
 
@@ -78,7 +87,7 @@ export async function updateInfoEntity(entityName, entity) {
       status: HttpStatusCodeEnum.Success
     }
   } catch (error) {
-    // CatchError(error)
+    CatchError(error)
     return {
       status: HttpStatusCodeEnum.ServerError
     }
@@ -92,27 +101,14 @@ export async function updateInfoEntity(entityName, entity) {
  * - Created By: DDKhang (27/5/2023)
  */
 export async function postInfoEntity(entityName, entity) {
-  // axios
-  //   .post(`${BaseUrl}/${entityName}`, entity)
-  //   .then((res) => {
-  //     return {
-  //       response: res,
-  //       status: HttpStatusCodeEnum.Success,
-  //     };
-  //   })
-  //   .catch((err) => {
-  // CatchError(err);
-  //   });
-
   try {
     const res = await axios.post(`${BaseUrl}/${entityName}`, entity)
-    console.log('Res: ', res)
     return {
       response: res,
       status: HttpStatusCodeEnum.Success
     }
   } catch (error) {
-    // CatchError(error)
+    CatchError(error)
   }
 }
 
@@ -124,8 +120,12 @@ export async function postInfoEntity(entityName, entity) {
  * @returns
  */
 export async function filterInfoEntity(entityName, formatOptionFilter) {
-  const res = await postData(`${BaseUrl}/${entityName}/filter`, formatOptionFilter)
-  return res
+  try {
+    const res = await postData(`${BaseUrl}/${entityName}/filter`, formatOptionFilter)
+    return res
+  } catch (error) {
+    CatchError(error)
+  }
 }
 
 /**
@@ -142,6 +142,6 @@ export async function deleteMultiple(entityName, listEntityId) {
     )
     return res
   } catch (error) {
-    // CatchError(error)
+    CatchError(error)
   }
 }

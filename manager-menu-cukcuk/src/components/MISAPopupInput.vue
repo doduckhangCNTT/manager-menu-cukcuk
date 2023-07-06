@@ -23,6 +23,9 @@ export default {
     defaultOptionPopupInput: {
       // Gía trị mặc định ban đầu của popup
       type: Object
+    },
+    customClass: {
+      type: Object
     }
   },
   components: { MISAInput, MISAPopup },
@@ -57,7 +60,10 @@ export default {
           property: this.propertyDb,
           dataTypesFilter: this.dataTypesFilter
         }
-        this.handleFilterPopupInput(option)
+        console.log('textFilterInput: ', textFilterInput)
+        if (textFilterInput) {
+          this.handleFilterPopupInput(option)
+        }
       }
     },
 
@@ -92,7 +98,9 @@ export default {
         property: this.propertyDb,
         dataTypesFilter: this.dataTypesFilter
       }
-      this.handleFilterPopupInput(option)
+      if (value) {
+        this.handleFilterPopupInput(option)
+      }
     }
   }
 }
@@ -110,6 +118,7 @@ export default {
     <div class="popupInput-input">
       <!-- <input type="text" /> -->
       <MISAInput
+        :class="this.customClass?.textAlignEnd"
         @keyup.enter="handleEnterInput($event)"
         @blur="handleBlurInput($event)"
         name="textFilter"
@@ -140,17 +149,21 @@ export default {
 }
 
 .popupInput-input {
+  width: 100%;
 }
 
 .popupInput-input input {
   height: 100%;
   // border: 1px solid var(--color-border-default);
   border-radius: 0 var(--border-radius-primary) var(--border-radius-primary) 0;
-  min-width: 200px;
+  min-width: 120px;
 }
 
 // Tiện ích thêm
 .w-150 {
   width: 150px;
+}
+.textAlignEnd {
+  text-align: end;
 }
 </style>
