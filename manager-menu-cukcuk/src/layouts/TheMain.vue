@@ -1,21 +1,13 @@
 <script>
 import MISAButton from '../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
-
-import MISAComboboxTable from '../components/MISAComboboxTable.vue'
 export default {
   name: 'TheMain',
-  components: { MISAButton, Icon, MISAComboboxTable },
+  components: { MISAButton, Icon },
   data() {
-    return {
-      test: null
-    }
+    return {}
   },
-  methods: {
-    handleTest(event, number) {
-      console.log({ event, number })
-    }
-  }
+  methods: {}
 }
 </script>
 
@@ -24,7 +16,6 @@ export default {
     <!-- Main top  -->
     <div class="main-top">
       <h1 class="main-top__title-table">Thực đơn</h1>
-      <MISAComboboxTable @input="handleTest($event, 1)" />
 
       <div class="main-top__panel">
         <MISAButton class="button main-top__panel-btn px-3 py-10">

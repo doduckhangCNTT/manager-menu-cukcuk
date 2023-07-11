@@ -23,6 +23,8 @@ import ContentPopup from './resources/contents/ContentPopup'
 import BehaviorHandleEnum from './resources/enums/BehaviorHandleEnum'
 import ResourceDialogNotification from './resources/resource/ResourceDialogNotification'
 import ResourceShortCut from './resources/resource/ResourceShortCut'
+import TabIndexEnum from './resources/enums/TabIndexEnum'
+import StatusSortEnum from './resources/enums/StatusSortEnum'
 
 const app = createApp(App)
 
@@ -43,6 +45,8 @@ globalProps.$HttpStatusCodeEnum = HttpStatusCodeEnum
 globalProps.$TypeComboboxEnum = TypeComboboxEnum
 globalProps.$EntityNameEnum = EntityNameEnum
 globalProps.$BehaviorHandleEnum = BehaviorHandleEnum
+globalProps.$TabIndexEnum = TabIndexEnum
+globalProps.$StatusSortEnum = StatusSortEnum
 
 // Resources
 globalProps.$ResourceNavbar = ResourceNavbar

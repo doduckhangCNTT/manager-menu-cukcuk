@@ -11,6 +11,18 @@ const ResourceShortCut = {
     char: '1',
     tooltip: 'CTRL + 1'
   },
+  BtnEdit: {
+    char: 'e',
+    tooltip: 'CTRL + E'
+  },
+  BtnDelete: {
+    char: 'd',
+    tooltip: 'CTRL + D'
+  },
+  BtnRefresh: {
+    char: 'y',
+    tooltip: 'CTRL + Y'
+  },
   CloseForm: {
     char: 'Escape',
     tooltip: 'Escape'

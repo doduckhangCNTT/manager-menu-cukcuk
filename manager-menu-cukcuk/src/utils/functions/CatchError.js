@@ -23,6 +23,7 @@ export function CatchError(error) {
       // Thực hiện phát mã lỗi đến dialog
       break
     case HttpStatusCodeEnum.ServerError:
+      emitter.emit(EmitterEnum.showDialogNotification, errorsValidate)
       break
     default:
       break

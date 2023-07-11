@@ -12,6 +12,8 @@ import { filterInfoEntity } from '../../utils/FetchData'
 import { useMenuFoodStore } from '../../stores/menuFood'
 import MISADialog from '../../components/MISADialog.vue'
 import ContentCombobox from '../../resources/contents/ContentCombobox'
+import InputFunctions from '../../utils/functions/InputFunctions'
+import { FormatNumberPrice } from '../../utils/functions/FormatNumber'
 
 export default {
   data() {
@@ -38,7 +40,11 @@ export default {
       // ##### --- Biến khởi tạo dialog thông báo
       objDialog: {}, // Chứa các thuộc tính để thực hiện hiển thị | thao tác trên dialog thông báo
       isDialogNotification: false, // Trạng thái đóng mở dialog
-      typePerform: {} // Kiểu thực hiện khi bấm nút trên dialog
+      typePerform: {}, // Kiểu thực hiện khi bấm nút trên dialog
+      newOptionFilters: [], // Chứa các giá trị filter
+
+      // ##### --- Biến khởi tạo sắp xếp
+      optionsSort: [] // Chứa các lựa chọn sắp xếp
     }
   },
   components: {
@@ -67,9 +73,11 @@ export default {
   },
   mounted() {
     window.addEventListener('click', this.handleClosePopupContent)
+    window.addEventListener('keydown', this.handleKeyDown)
   },
   beforeUnmount() {
     window.removeEventListener('click', this.handleClosePopupContent)
+    window.removeEventListener('keydown', this.handleKeyDown)
 
     this.$msemitter.off(this.$EmitterEnum.loadAgainRecords, this.loadData)
     this.$msemitter.off(this.$EmitterEnum.refreshPage, this.fetchData)
@@ -94,6 +102,55 @@ export default {
     }
   },
   methods: {
+    handleIconSortByStatus(status) {
+      console.log('Status Number: ', status)
+      let nameIconSort = ''
+      if (status === 0) {
+        nameIconSort = ''
+      } else if (status === 1) {
+        nameIconSort = 'arrow-down'
+      } else if (status === 2) {
+        nameIconSort = 'arrow-up'
+      }
+      return nameIconSort
+    },
+    /**
+     *
+     * @param {*} event - Sự kiện mặc định
+     * - Thực hiện xử lí khi nhấn phím
+     * - Author: (8/5/2023)
+     */
+    handleKeyDown(event) {
+      if (event.ctrlKey && event.key === this.$ResourceShortCut.BtnAdd.char) {
+        event.preventDefault() // Ngăn chặn hành động mặc định của trình duyệt
+        this.handleRedirectMenuCreate(
+          this.$ResourceToolbarTable.toolbarItems.find(
+            (tI) => tI.type === this.$TypeToolbarBtnEnum.create
+          ).type
+        )
+      } else if (event.ctrlKey && event.key === this.$ResourceShortCut.BtnEdit.char) {
+        event.preventDefault() // Ngăn chặn hành động mặc định của trình duyệt
+        this.handleRedirectMenuCreate(
+          this.$ResourceToolbarTable.toolbarItems.find(
+            (tI) => tI.type === this.$TypeToolbarBtnEnum.edit
+          ).type
+        )
+      } else if (event.ctrlKey && event.key === this.$ResourceShortCut.BtnDelete.char) {
+        event.preventDefault() // Ngăn chặn hành động mặc định của trình duyệt
+        this.handleRedirectMenuCreate(
+          this.$ResourceToolbarTable.toolbarItems.find(
+            (tI) => tI.type === this.$TypeToolbarBtnEnum.delete
+          ).type
+        )
+      } else if (event.ctrlKey && event.key === this.$ResourceShortCut.BtnRefresh.char) {
+        event.preventDefault() // Ngăn chặn hành động mặc định của trình duyệt
+        this.handleRedirectMenuCreate(
+          this.$ResourceToolbarTable.toolbarItems.find(
+            (tI) => tI.type === this.$TypeToolbarBtnEnum.refresh
+          ).type
+        )
+      }
+    },
     /**
      * - Thực hiện lấy danh sách dữ liệu ban đầu
      * - Author: DDKhang (30/6/2023)
@@ -104,6 +161,7 @@ export default {
         Page: 1,
         Start: 0,
         Limit: 30,
+        Sorts: [...this.optionsSort],
         Filters: []
       }
 
@@ -141,6 +199,7 @@ export default {
           Page: page,
           Start: 0,
           Limit: limit,
+          Sorts: [...this.optionsSort],
           Filters: []
         }
         let newFormatOptionFilter = formatOptionFilter
@@ -203,7 +262,8 @@ export default {
      */
     handleCustomClassCombobox() {
       return {
-        heightInput: 'height-28'
+        heightInput: 'height-28',
+        noHandle: 'noHandle'
       }
     },
 
@@ -349,6 +409,7 @@ export default {
         Page: 1,
         Start: 0,
         Limit: this.handleQueryUrl.limit,
+        Sorts: [...this.optionsSort],
         Filters: [...newOptionFilter]
       }
       // Để ngăn trường hợp khi bấm btn "Tải lại" sẽ lấy giá trị page hiện tại trên url hiện tại làm giá giá filter (điều này có thể dẫn đến lấy ra số lượng giá trị hiển thị không đúng)
@@ -374,7 +435,7 @@ export default {
       optionNewFilter.isCreateFromFilterRow = true
       optionNewFilter.property = option.property
       optionNewFilter.operator = option.typeCondition
-      optionNewFilter.value = option.valueFilter.trim()
+      optionNewFilter.value = option.valueFilter?.trim()
       optionNewFilter.type = option.dataTypesFilter
       ;(optionNewFilter.addition = option.addition),
         (optionNewFilter.group = option.property + 'FromFilterRow')
@@ -384,58 +445,118 @@ export default {
 
     /**
      *
+     * @param {*} typeDb - Tên thuộc tính database
+     * @param {*} value  - Gía trị muốn kiểm tra
+     * - Kiểm tra có sự thay đổi giá trị trên các filter input
+     * - Author: DDKhang (10/7/2023)
+     */
+    handleChangeValueFilter(typeDb, value, typeCondition) {
+      console.log({ typeDb, value, typeCondition })
+      let isFlagChange = false
+      const item = this.newOptionFilters?.filter((n) => {
+        return n.property === typeDb
+      })
+      // eslint-disable-next-line no-empty
+      if (item?.length > 0) {
+      } else {
+        return true
+      }
+
+      this.newOptionFilters?.forEach((item) => {
+        if (item.property === typeDb) {
+          if (item.value !== value || item.operator !== typeCondition) {
+            isFlagChange = true
+          }
+        }
+      })
+      return isFlagChange // Không có sự thay đổi về giá trị
+    },
+
+    /**
+     *
      * @param {*} option - Gía trị lấy từ popup input
      * - Thực hiện lọc dữ liệu trên popup input
      * - Author: DDKhang (25/6/2023)
      */
     async handleFilterPopupInput(option) {
+      console.log('Option: ', option)
       try {
+        let isChangeFilter = true
         const filterOptions = [...this.filterOptions]
         let newOptionFilter = [] // Chứa option filter
 
-        if (filterOptions.length === 0) {
-          // Nếu filterOptions ban đầu chưa có giá trị
-          // 1. Cấu trúc lại option theo đúng quy định
-          const optionNewFilter = this.formatOptionFilter(option)
-          // 2. Thực hiện thêm đối tượng vào mảng
-          newOptionFilter.push(optionNewFilter)
-          this.filterOptions.push(optionNewFilter)
-        } else {
-          let isFlagPushOption = false
-          // Kiểm tra option đã tồn tại trong filterOptions
-          newOptionFilter = filterOptions.map((fo) => {
-            if (fo.property === option.property) {
-              // Nếu option đó đã tồn tại
-              const optionNewFilter = this.formatOptionFilter(option)
-              isFlagPushOption = true
-              return optionNewFilter
+        // Thực hiện kiểm tra có sự thay đổi giá trị trên input filter
+        if (this.newOptionFilters?.length > 0) {
+          const isHandleChange = this.handleChangeValueFilter(
+            option.property,
+            option.valueFilter?.trim(),
+            option.typeCondition?.trim()
+          )
+          isChangeFilter = isHandleChange
+        }
+
+        console.log('IsChangeFilter: ', isChangeFilter)
+
+        // Nếu có sự thay đổi giá trị filter
+        if (isChangeFilter) {
+          if (filterOptions.length === 0) {
+            // Nếu filterOptions ban đầu chưa có giá trị
+            // 1. Cấu trúc lại option theo đúng quy định
+            const optionNewFilter = this.formatOptionFilter(option)
+            // 2. Thực hiện thêm đối tượng vào mảng
+            newOptionFilter.push(optionNewFilter)
+            this.filterOptions.push(optionNewFilter)
+          } else {
+            let isFlagPushOption = false
+            // Kiểm tra option đã tồn tại trong filterOptions
+            newOptionFilter = filterOptions.map((fo) => {
+              if (fo.property === option.property) {
+                // Nếu option đó đã tồn tại
+                const optionNewFilter = this.formatOptionFilter(option)
+                isFlagPushOption = true
+                return optionNewFilter
+              }
+              return fo
+            })
+
+            if (!isFlagPushOption) {
+              // Nếu option đó chưa tồn tại -> Thực hiện thêm option
+              const optionNewFilterAdd = this.formatOptionFilter(option)
+              newOptionFilter.push(optionNewFilterAdd)
             }
-            return fo
+
+            // Thực hiện lọc bỏ các giá trị filter có kiểu "int" và value = ""
+            newOptionFilter = newOptionFilter
+              .map((itemFilter) => {
+                if (itemFilter.type === 'int' && itemFilter.value.trim() === '') {
+                  return null
+                }
+                return itemFilter
+              })
+              .filter(Boolean)
+            // Lưu lại giá trị lọc
+            this.filterOptions = newOptionFilter
+          }
+          // Thực hiện lưu lại sự thay đổi của các giá trị filter
+          this.newOptionFilters = [...newOptionFilter]
+
+          // Cấu hình lại dữ liệu gửi lên để lọc
+          const formatOptionFilter = {
+            Page: 1,
+            Start: 0,
+            Limit: this.handleQueryUrl.limit,
+            Sorts: [...this.optionsSort],
+            Filters: [...newOptionFilter]
+          }
+          // Để ngăn trường hợp khi bấm btn "Tải lại" sẽ lấy giá trị page hiện tại trên url hiện tại làm giá giá filter (điều này có thể dẫn đến lấy ra số lượng giá trị hiển thị không đúng)
+          this.$router.push({
+            query: { page: formatOptionFilter.Page, limit: formatOptionFilter.Limit }
           })
 
-          if (!isFlagPushOption) {
-            // Nếu option đó chưa tồn tại -> Thực hiện thêm option
-            const optionNewFilterAdd = this.formatOptionFilter(option)
-            newOptionFilter.push(optionNewFilterAdd)
-          }
-          this.filterOptions = newOptionFilter
+          const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+          this.menuFoodStore.setDataFilter(res.data)
+          this.menuFoods = res.data.Data
         }
-
-        // Cấu hình lại dữ liệu gửi lên để lọc
-        const formatOptionFilter = {
-          Page: 1,
-          Start: 0,
-          Limit: this.handleQueryUrl.limit,
-          Filters: [...newOptionFilter]
-        }
-        // Để ngăn trường hợp khi bấm btn "Tải lại" sẽ lấy giá trị page hiện tại trên url hiện tại làm giá giá filter (điều này có thể dẫn đến lấy ra số lượng giá trị hiển thị không đúng)
-        this.$router.push({
-          query: { page: formatOptionFilter.Page, limit: formatOptionFilter.Limit }
-        })
-
-        const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
-        this.menuFoodStore.setDataFilter(res.data)
-        this.menuFoods = res.data.Data
       } catch (error) {
         console.log('error: ', error)
       }
@@ -491,18 +612,21 @@ export default {
         return f.FoodId
       })
       const strFoodListIds = listFoodIds.join(',')
-      await deleteMultiple(this.$EntityNameEnum.Foods, strFoodListIds)
-      // Thực hiện Tải lại dữ liệu
-      this.loadData(this.handleQueryUrl.page)
+      const res = await deleteMultiple(this.$EntityNameEnum.Foods, strFoodListIds)
 
-      // Hiển thị toast thông báo
-      // 1. Thông tin thông báo
-      const toastInfo = {
-        status: this.$ResourceToast.DeleteEntity.DeleteSuccess.status,
-        msg: this.$ResourceToast.DeleteEntity.DeleteSuccess.msg
+      if (res.status === this.$HttpStatusCodeEnum.NoContent) {
+        // Thực hiện Tải lại dữ liệu
+        this.loadData(this.handleQueryUrl.page)
+
+        // Hiển thị toast thông báo
+        // 1. Thông tin thông báo
+        const toastInfo = {
+          status: this.$ResourceToast.DeleteEntity.DeleteSuccess.status,
+          msg: this.$ResourceToast.DeleteEntity.DeleteSuccess.msg
+        }
+        // 2. Phát lên App.vue -> để hiển thị Toast
+        this.$msemitter.emit(this.$EmitterEnum.showToast, toastInfo, 5000)
       }
-      // 2. Phát lên App.vue -> để hiển thị Toast
-      this.$msemitter.emit(this.$EmitterEnum.showToast, toastInfo, 5000)
     },
 
     /**
@@ -548,6 +672,7 @@ export default {
           Page: pagePresent,
           Start: 0,
           Limit: limit,
+          Sorts: [...this.optionsSort],
           Filters: [...this.filterOptions]
         }
 
@@ -573,11 +698,11 @@ export default {
      * - Thực hiện xử lí tác vụ của từng loại button trên dialog
      * - Author: DDKhang (23/6/2023)
      */
-    handleChooseBtnPanelOnDialog(typeBtn, typeHandle) {
+    async handleChooseBtnPanelOnDialog(typeBtn, typeHandle) {
       switch (typeBtn) {
         case this.$TypeBtnDialogEnum.Have:
           if (typeHandle === this.$TypeBtnDialogEnum.TypeHandleTask.deleteElement) {
-            this.handleBtnDelete()
+            await this.handleBtnDelete()
           }
           // Thực hiện đóng dialog thông báo
           this.isDialogNotification = false
@@ -602,6 +727,96 @@ export default {
       return {
         textAlignEnd: 'textAlignEnd'
       }
+    },
+
+    /**
+     *
+     * @param {*} event - Đối tượng sự kiện
+     * - Thực hiện chỉ cho phép nhập Number vào input
+     * - Author: DDKhang (1/7/2023)
+     */
+    restrictNonNumeric(event) {
+      InputFunctions.restrictNonNumeric(event)
+    },
+
+    /**
+     *
+     * @param {*} value - Gía trị cần format theo dạng tiền
+     * - Thực hiện cấu trúc lại định dạng số thành định dạng tiền
+     * - Author: DDKhang (11/7/2023)
+     */
+    formatPriceData(value) {
+      if (value) {
+        const data = { type: 'number', value }
+        return FormatNumberPrice(data)
+      }
+      return ''
+    },
+
+    /**
+     *
+     * @param {*} statusSort - Chỉ số trạng thái sắp xếp
+     * - Thực hiện lấy giá trị sắp xếp theo chỉ số
+     * - Author: DDKhang (11/7/2023)
+     */
+    handleTypeStatusSort(statusSort) {
+      switch (statusSort) {
+        case this.$StatusSortEnum.NoSort.number:
+          return this.$StatusSortEnum.NoSort.text
+        case this.$StatusSortEnum.Decrease.number:
+          return this.$StatusSortEnum.Decrease.text
+        case this.$StatusSortEnum.Increase.number:
+          return this.$StatusSortEnum.Increase.text
+      }
+    },
+
+    /**
+     *
+     * @param {*} event - Sự kiện
+     * @param {*} data - Thông tin dữ liệu cột
+     * - Thực hiện sắp xếp theo cột
+     * - Author: DDKhang (11/7/2023)
+     */
+    async handleSortByColumn(event, data) {
+      const optionSort = this.optionsSort?.find((os) => os.property === data.propertyDb)
+      if (optionSort) {
+        const changeStatusSort = this.optionsSort.map((os) => {
+          const statusSort =
+            parseInt(os.statusSort) + 1 > this.$StatusSortEnum.StatusMax
+              ? 0
+              : parseInt(os.statusSort) + 1
+          if (os.property === data.propertyDb) {
+            return {
+              ...os,
+              statusSort,
+              direction: this.handleTypeStatusSort(statusSort)
+            }
+          }
+          return os
+        })
+        this.optionsSort = [...changeStatusSort]
+      } else {
+        const optionSortNew = {
+          property: data.propertyDb,
+          statusSort: 1,
+          direction: this.handleTypeStatusSort(this.$StatusSortEnum.Decrease.number)
+        }
+
+        this.optionsSort.push(optionSortNew)
+      }
+
+      // Cấu hình lại dữ liệu gửi lên để lọc
+      const formatOptionFilter = {
+        Page: 1,
+        Start: 0,
+        Limit: this.handleQueryUrl.limit,
+        Sorts: [...this.optionsSort],
+        Filters: [...this.filterOptions]
+      }
+
+      const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
+      this.menuFoodStore.setDataFilter(res.data)
+      this.menuFoods = res.data.Data
     }
   }
 }
@@ -662,17 +877,30 @@ export default {
           <thead>
             <tr>
               <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Loại món</div>
+                <div class="table-menu__title-col min-width-200">Loại món</div>
                 <div class="table-menu-thead__filter">
                   <MISACombobox
                     :customClass="handleCustomClassCombobox()"
                     :listItemValue="this.optionsFoodTypeRecord"
                     :handle-choose-record="handleChooseRecordCombobox"
+                    :default-value-input="this.optionsFoodTypeRecord[0]"
                   />
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Mã món</div>
+                <div
+                  class="table-menu__title-col"
+                  @click="(event) => handleSortByColumn(event, { propertyDb: 'FoodCode' })"
+                >
+                  <p>Mã món</p>
+                  <div
+                    :class="
+                      this.handleIconSortByStatus(
+                        this.optionsSort?.find((os) => os.property === 'FoodCode')?.statusSort
+                      )
+                    "
+                  ></div>
+                </div>
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
                     dataTypesFilter="string"
@@ -684,7 +912,19 @@ export default {
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Tên món</div>
+                <div
+                  class="table-menu__title-col"
+                  @click="(event) => handleSortByColumn(event, { propertyDb: 'FoodName' })"
+                >
+                  <p>Tên món</p>
+                  <div
+                    :class="
+                      this.handleIconSortByStatus(
+                        this.optionsSort?.find((os) => os.property === 'FoodName')?.statusSort
+                      )
+                    "
+                  ></div>
+                </div>
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
                     dataTypesFilter="string"
@@ -696,7 +936,19 @@ export default {
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Nhóm thực đơn</div>
+                <div
+                  class="table-menu__title-col"
+                  @click="(event) => handleSortByColumn(event, { propertyDb: 'MenuGroupName' })"
+                >
+                  <p>Nhóm thực đơn</p>
+                  <div
+                    :class="
+                      this.handleIconSortByStatus(
+                        this.optionsSort?.find((os) => os.property === 'MenuGroupName')?.statusSort
+                      )
+                    "
+                  ></div>
+                </div>
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
                     dataTypesFilter="string"
@@ -708,7 +960,19 @@ export default {
                 </div>
               </th>
               <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Đơn vị tính</div>
+                <div
+                  class="table-menu__title-col"
+                  @click="(event) => handleSortByColumn(event, { propertyDb: 'FoodUnitName' })"
+                >
+                  <p>Đơn vị tính</p>
+                  <div
+                    :class="
+                      this.handleIconSortByStatus(
+                        this.optionsSort?.find((os) => os.property === 'FoodUnitName')?.statusSort
+                      )
+                    "
+                  ></div>
+                </div>
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
                     dataTypesFilter="string"
@@ -720,7 +984,19 @@ export default {
                 </div>
               </th>
               <th class="table-menu__theadItem-filter width-100">
-                <div class="table-menu__title-col">Giá bán</div>
+                <div
+                  class="table-menu__title-col"
+                  @click="(event) => handleSortByColumn(event, { propertyDb: 'Price' })"
+                >
+                  <p>Giá bán</p>
+                  <div
+                    :class="
+                      this.handleIconSortByStatus(
+                        this.optionsSort?.find((os) => os.property === 'Price')?.statusSort
+                      )
+                    "
+                  ></div>
+                </div>
                 <div class="table-menu-thead__filter">
                   <MISAPopupInput
                     dataTypesFilter="int"
@@ -729,36 +1005,11 @@ export default {
                     :handleFilterPopupInput="handleFilterPopupInput"
                     :defaultOptionPopupInput="this.$ContentPopup.PopupPrice[2]"
                     :customClass="handleCustomClassPopupInput()"
+                    @keydown="restrictNonNumeric"
+                    typeFormat="number"
                   />
                 </div>
               </th>
-              <!-- <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Thay đổi theo thời giá</div>
-                <div class="table-menu-thead__filter">
-                  <MISACombobox
-                    :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsFoodTypeRecord"
-                  />
-                </div>
-              </th>
-              <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Điều chỉnh giá tự do</div>
-                <div class="table-menu-thead__filter">
-                  <MISACombobox
-                    :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsFoodTypeRecord"
-                  />
-                </div>
-              </th>
-              <th class="table-menu__theadItem-filter">
-                <div class="table-menu__title-col">Định lượng NVL</div>
-                <div class="table-menu-thead__filter">
-                  <MISACombobox
-                    :customClass="handleCustomClassCombobox()"
-                    :listItemValue="this.optionsFoodTypeRecord"
-                  />
-                </div>
-              </th> -->
               <th class="table-menu__theadItem-filter width-200 min-width-200">
                 <div class="table-menu__title-col">Hiển thị trên thực đơn</div>
                 <div class="table-menu-thead__filter">
@@ -767,6 +1018,7 @@ export default {
                     :customClass="handleCustomClassCombobox()"
                     :listItemValue="this.optionsShowOnMenu"
                     :handle-choose-record="handleChooseRecordCombobox"
+                    :defaultValueInput="this.optionsShowOnMenu[0]"
                   />
                 </div>
               </th>
@@ -778,6 +1030,7 @@ export default {
                     :customClass="handleCustomClassCombobox()"
                     :listItemValue="this.optionsStopSelling"
                     :handle-choose-record="handleChooseRecordCombobox"
+                    :defaultValueInput="this.optionsStopSelling[0]"
                   />
                 </div>
               </th>
@@ -814,7 +1067,7 @@ export default {
                 style="text-align: end"
                 @contextmenu.prevent="showPopupRightClickAt($event, food)"
               >
-                <div>{{ food.Price }}</div>
+                <div>{{ formatPriceData(food.Price) }}</div>
               </td>
               <td
                 class=""
@@ -824,7 +1077,7 @@ export default {
                 <MISACheckbox
                   class="disable"
                   @dblclick.stop
-                  :checked="food.ShowOnMenu ? true : false"
+                  :checked="food.ShowOnMenu ? false : true"
                 />
               </td>
               <td
@@ -1017,6 +1270,10 @@ td {
 .table-menu__title-col {
   font-weight: 500;
   padding: 7px 10px;
+  display: flex;
+  justify-content: center;
+  column-gap: 5px;
+  cursor: pointer;
 }
 
 .table-menu-thead__filter {
@@ -1081,5 +1338,16 @@ td {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.arrow-up {
+  background: url('@/assets/ResourceTable/img/Sprites.64af8f61.svg') no-repeat -1689px -524px;
+  width: 11px;
+  height: 14px;
+}
+.arrow-down {
+  background: url('@/assets/ResourceTable/img/Sprites.64af8f61.svg') no-repeat -1729px -525px;
+  width: 11px;
+  height: 14px;
 }
 </style>

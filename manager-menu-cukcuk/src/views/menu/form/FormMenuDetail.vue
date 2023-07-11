@@ -14,9 +14,6 @@ export default {
   props: {
     food: {
       type: Object
-    },
-    foodValue: {
-      type: Object
     }
   },
   data() {
@@ -106,9 +103,11 @@ export default {
     // Thực hiện lấy toàn bộ giá trị đối tượng food cha
     this.foodChild = this.food
     this.handleReferenceInputRequired()
+    // document.addEventListener('keydown', this.handleTabKey)
   },
   beforeUnmount() {
     this.$msemitter.off(this.$EmitterEnum.showValidateInput, this.handleShowValidateInputError)
+    // document.removeEventListener('keydown', this.handleTabKey)
   },
   watch: {
     foodChild() {
@@ -151,6 +150,37 @@ export default {
     }
   },
   methods: {
+    /**
+     * - Thực hiện bắt sự kiện enter trên checkbox
+     * - Author: DDKhang (9/7/2023)
+     */
+    handleKeyEnter() {
+      this.foodChild.ShowOnMenu = !this.foodChild.ShowOnMenu
+    },
+    /**
+     *
+     * @param {*} event - Sự kiện khi gọi hàm
+     * Author: DDKhang (11/5/2023)
+     */
+    handleTabKey(event) {
+      console.log('Hello 2')
+      if (event.keyCode === 9 && event.target === document.activeElement) {
+        // Kiểm tra xem phần tử đang focus có phải là phần tử cuối cùng hay không
+        const lastTabIndex = 12 // Thay thế N bằng tabIndex của phần tử cuối cùng
+        if (event.target.tabIndex === lastTabIndex) {
+          event.preventDefault() // Ngăn chặn hành vi mặc định của tab
+          this.focusFirstInput() // Set focus vào phần tử input đầu tiên
+        }
+      }
+    },
+    /**
+     * - Thực forcus vào thẻ input employeeCode
+     * - Author: DDKhang (11/5/2023)
+     */
+    focusFirstInput() {
+      this.$refs.foodNameRef?.focusInput() // Set focus vào phần tử input đầu tiên
+    },
+
     formatMoney() {
       // Loại bỏ các ký tự không phải số từ chuỗi nhập vào
       let rawValue = this.moneyInput.replace(/[^0-9]/g, '')
@@ -359,9 +389,11 @@ export default {
      * - Author: DDKhang (2/7/2023)
      */
     handleChangeFile(event) {
+      event.preventDefault()
       const file = event.target.files[0] // Lấy tệp hình ảnh từ sự kiện
       const reader = new FileReader() // Tạo đối tượng đọc file
 
+      console.log('Hello1')
       reader.onload = (e) => {
         this.fileTest = e.target.result // Đặt đường dẫn hình ảnh cho thuộc tính dữ liệu
       }
@@ -487,12 +519,13 @@ export default {
         </label>
         <div class="form-group formMenu__info-input w-full">
           <MISAInput
-            focus="true"
+            :focus="true"
             v-model="this.foodChild.FoodName"
             name="FoodName"
             :required="true"
             ref="foodNameRef"
             @blur="handleGenerationFoodCode($event)"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.FoodName"
           />
           <MISATooltip positionTooltip="tooltip-right">
             <template #tooltip-explain>
@@ -514,6 +547,7 @@ export default {
             name="FoodCode"
             :required="true"
             ref="foodCodeRef"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.FoodCode"
           />
           <MISATooltip positionTooltip="tooltip-right">
             <template #tooltip-explain>
@@ -536,6 +570,7 @@ export default {
             :customClass="handleCustomClassGroupMenuCombobox()"
             :listItemValue="this.menuGroups"
             :defaultValueInput="handleDefaultValueMenuGroupCombobox()"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.MenuGroup"
           />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
@@ -555,6 +590,7 @@ export default {
             :listItemValue="this.foodUnits"
             :default-value-input="handleDefaultValueFoodUnitCombobox()"
             ref="calcUnitRef"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.FoodUnit"
           />
           <MISATooltip positionTooltip="tooltip-right">
             <template #tooltip-explain>
@@ -577,6 +613,8 @@ export default {
             :required="true"
             @keydown="restrictNonNumeric"
             ref="priceRef"
+            type="number"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.Price"
           />
           <MISATooltip positionTooltip="tooltip-right">
             <template #tooltip-explain>
@@ -596,6 +634,8 @@ export default {
             class="w-1-2 input-text-right"
             v-model="this.foodChild.InitialPrice"
             @keydown="restrictNonNumeric"
+            type="number"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.InitialPrice"
           />
           <!-- ref="moneyInput" -->
           <!-- @input="formatMoney" -->
@@ -617,6 +657,7 @@ export default {
             rows="4"
             v-model="this.foodChild.Description"
             style="height: 80px"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.Description"
           ></textarea>
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
@@ -633,6 +674,7 @@ export default {
             :customClass="handleCustomClassGroupMenuCombobox()"
             :listItemValue="this.foodProcessingPlaces"
             :default-value-input="handleDefaultValueFoodProcessingPlaceCombobox()"
+            :tabindex="this.$TabIndexEnum.formFoodInfo.FoodProcessingPlace"
           />
           <!-- <Icon icon="material-symbols:error" color="red" width="20" height="20" /> -->
         </div>
@@ -650,6 +692,8 @@ export default {
               :checked="this.foodChild.ShowOnMenu"
               v-model="this.foodChild.ShowOnMenu"
               id="ckShowOnMenu"
+              :tabindex="this.$TabIndexEnum.formFoodInfo.ShowOnMenu"
+              @keydown.enter="handleKeyEnter($event)"
             />
             <label for="ckShowOnMenu">Không hiển thị trên thực đơn</label>
           </div>
@@ -664,6 +708,7 @@ export default {
               id="ckStopSelling"
               :checked="this.foodChild.StopSelling > 0 ? true : false"
               v-model="this.foodChild.StopSelling"
+              :tabindex="this.$TabIndexEnum.formFoodInfo.StopSelling"
             />
             <label for="ckStopSelling">Ngừng bán</label>
           </div>
@@ -883,5 +928,8 @@ export default {
 
 .input-checkbox {
   cursor: pointer;
+}
+.input-checkbox:focus {
+  outline: 1px solid blue;
 }
 </style>

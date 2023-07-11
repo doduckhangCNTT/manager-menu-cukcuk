@@ -32,6 +32,15 @@ const ResourceToolbarTable = {
       tooltip: 'CTRL + Y',
       type: TypeToolbarBtnEnum.refresh
     }
+  ],
+
+  btnHandleForm: [
+    {
+      title: 'Cất',
+      classIcon: '',
+      tooltip: 'CTRL + S',
+      type: TypeToolbarBtnEnum.saveAdd
+    }
   ]
 }
 

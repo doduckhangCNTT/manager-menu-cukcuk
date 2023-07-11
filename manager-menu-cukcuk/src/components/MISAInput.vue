@@ -1,13 +1,11 @@
 <script>
 import { nextTick } from 'vue'
+import { FormatNumberPrice } from '../utils/functions/FormatNumber'
 
 export default {
-  name: 'MISAInput',
+  name: 'MInput',
   props: {
     value: {
-      type: String
-    },
-    employeeCode: {
       type: String
     },
     modelValue: {
@@ -29,10 +27,18 @@ export default {
     name: {
       type: String,
       default: ''
+    },
+    type: {
+      type: String,
+      required: false,
+      default: 'text'
     }
   },
   data() {
-    return {}
+    return {
+      valueData: '',
+      positionPointer: null
+    }
   },
   mounted() {
     this.focusInput()
@@ -42,6 +48,26 @@ export default {
     if (this.modelValue) {
       const tagCurrent = this.$refs.refInput
       this.removeInvalidInputForm(tagCurrent)
+    }
+  },
+  watch: {
+    modelValue() {
+      this.valueData = this.modelValue
+      if (this.positionPointer != null) {
+        this.$nextTick(() => {
+          this.$refs.refInput.setSelectionRange(this.positionPointer, this.positionPointer)
+        })
+      }
+    },
+    /**
+     * - Thực hiện
+     */
+    valueData() {
+      if (this.positionPointer != null) {
+        this.$nextTick(() => {
+          this.$refs.refInput.setSelectionRange(this.positionPointer, this.positionPointer)
+        })
+      }
     }
   },
   computed: {},
@@ -62,6 +88,39 @@ export default {
     },
 
     /**
+     *
+     * @param {*} event - Đối tượng sự kiện
+     * - Author: DDKhang (11/7/2023)
+     */
+    handleData(event) {
+      this.valueData = event.target.value
+      if (this.type == 'number') {
+        let value = event.target.value + ''
+        let strPointer = value.substring(0, event.target.selectionStart)
+        let numberAfterFormat = this.formatData(strPointer)
+        this.positionPointer = numberAfterFormat.length
+      }
+      if (this.type == 'number') {
+        let inputValue = (event.target.value + '').replace(/\D/g, '')
+        this.$emit('update:modelValue', inputValue)
+      } else {
+        this.$emit('update:modelValue', event.target.value)
+      }
+    },
+
+    /**
+     *
+     * @param {*} value - Gía trị số cần cấu trúc đúng định dạng
+     * - Thực format số theo kiểu giá tiền
+     * - Author: DDKhang (11/7/2023)
+     */
+    formatData(value) {
+      if (value) {
+        const data = { type: this.type, value }
+        return FormatNumberPrice(data)
+      }
+    },
+    /**
      * Params:
      *  + tagCurrent: thẻ input hiện tại
      * Des: Thực hiện xóa class "invalid" từ thẻ cha của input đó
@@ -78,6 +137,10 @@ export default {
       }
     },
 
+    /**
+     * - Thực hiện xử lí các input được yêu cầu
+     * - Author: DDKhang (11/7/2023)
+     */
     handleInputRequired() {
       if (this.required) {
         const tagCurrent = this.$refs.refInput
@@ -96,8 +159,8 @@ export default {
 <template>
   <input
     :readonly="this.readonly"
-    :value="modelValue"
-    @input="$emit('update:modelValue', $event.target.value)"
+    :value="formatData(valueData)"
+    @input="handleData"
     ref="refInput"
     class="textField-input input-hover input-focus"
     type="text"
@@ -109,7 +172,7 @@ export default {
   />
 </template>
 
-<style lang="scss">
+<style>
 .textField-input {
   border: 1px solid var(--color-border-default);
   height: 30px;

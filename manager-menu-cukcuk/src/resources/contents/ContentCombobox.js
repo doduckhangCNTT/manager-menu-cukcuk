@@ -22,6 +22,15 @@ const ContentCombobox = {
   optionsStopSelling: [
     {
       id: 'ss-1',
+      value: 'Tất cả',
+      valueFilter: '(0, 1)', // Tìm kiếm theo điều kiện có
+      typeCondition: 'IN',
+      property: 'StopSelling',
+      type: 'string',
+      addition: 'and'
+    },
+    {
+      id: 'ss-2',
       value: 'Có',
       valueFilter: '1', // Tìm kiếm theo điều kiện có
       typeCondition: '=',
@@ -30,7 +39,7 @@ const ContentCombobox = {
       addition: 'and'
     },
     {
-      id: 'ss-2',
+      id: 'ss-3',
       value: 'Không',
       valueFilter: '0', // Tìm kiếm theo điều kiện không
       typeCondition: '=',
@@ -42,6 +51,15 @@ const ContentCombobox = {
   optionsShowOnMenu: [
     {
       id: 'ss-1',
+      value: 'Tất cả',
+      valueFilter: '(0, 1)', // Tìm kiếm theo điều kiện có
+      typeCondition: 'IN',
+      property: 'ShowOnMenu',
+      type: 'string',
+      addition: 'and'
+    },
+    {
+      id: 'ss-2',
       value: 'Có',
       valueFilter: '1', // Tìm kiếm theo điều kiện có
       typeCondition: '=',
@@ -50,7 +68,7 @@ const ContentCombobox = {
       addition: 'and'
     },
     {
-      id: 'ss-2',
+      id: 'ss-3',
       value: 'Không',
       valueFilter: '0', // Tìm kiếm theo điều kiện không
       typeCondition: '=',

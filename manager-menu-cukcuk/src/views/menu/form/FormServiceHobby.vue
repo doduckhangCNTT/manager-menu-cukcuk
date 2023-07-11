@@ -1,75 +1,52 @@
 <script>
 import MISAButton from '../../../components/MISAButton.vue'
 import { Icon } from '@iconify/vue'
-import { getDataById } from '../../../utils/FetchData'
+import { filterInfoEntity, getDataById } from '../../../utils/FetchData'
 import InputFunctions from '../../../utils/functions/InputFunctions'
+import MISAComboboxTable from '../../../components/MISAComboboxTable.vue'
+
 export default {
   name: 'FormServiceHobby',
   props: {
     food: {
       type: Object
-    },
-    foodValue: {
-      type: Object
     }
   },
-  components: { MISAButton, Icon },
+  components: { MISAButton, Icon, MISAComboboxTable },
   data() {
     return {
       dataListServiceHobby: [{ ServiceHobbyName: '', MoreMoney: '' }], // Dánh sách chứa các giá trị của dòng input trong bảng
       selectIndexLine: 0, // Vị trí hiện tại trên dòng tương ứng (mặc định đang focus vào dòng đầu tiên)
       foodChild: {},
       foodServiceHobbes: [],
-      foodId: null
+      foodId: null,
+      serviceHobbes: []
     }
   },
   async created() {
+    await this.handleFetchServiceHobby()
+
     this.foodChild = this.food
     this.foodId = this.$route.params.id
-    if (this.foodId) {
-      const res = await getDataById(this.$EntityNameEnum.Foods, { ids: this.foodId })
-      this.foodChild = res.data[0]
-    }
+    // if (this.foodId) {
+    //   const res = await getDataById(this.$EntityNameEnum.Foods, { ids: this.foodId })
+    //   this.foodChild = res.data[0]
+    // }
     await this.handleInitialServiceHobby()
   },
   mounted() {},
   watch: {
-    // Thực hiện bắt sự thay đổi trong danh sách sở thích phục vụ -> truyền lên giá trị cha
-    dataListServiceHobby() {
-      this.$emit('update:food', { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby })
-      // Thực hiện cập nhật giá trị sở thích phục vụ cho nội dung con
-      this.foodChild = { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby }
-    },
-
-    // 'food.FoodServiceHobby': {
-    //   async handler() {
-    //     console.log('Food: ', this.foodValue)
-    //     const foodValue = [...this.foodValue.FoodServiceHobby]
-    //     if (foodValue?.length > 0) {
-    //       const foodServiceHobbes = foodValue.map((fs) => {
-    //         return fs.ServiceHobbyId
-    //       })
-    //       const serviceHobbyIds = foodServiceHobbes.join(',')
-    //       console.log('serviceHobbyIds: ', serviceHobbyIds)
-    //       const res = await getDataById(this.$EntityNameEnum.ServiceHobbes, {
-    //         ids: serviceHobbyIds
-    //       })
-    //       console.log('Res: ', res)
-    //       this.dataListServiceHobby = [...res.data]
-    //     }
-    //   }
-    // }
-
-    // foodValue: {
-    //   handler() {
-    //     this.foodChild = { ...this.foodValue }
-    //   }
-    // }
     food: {
       deep: true,
       handler(newValue) {
         this.foodChild = newValue
       }
+    },
+    // Thực hiện bắt sự thay đổi trong danh sách sở thích phục vụ -> truyền lên giá trị cha
+    dataListServiceHobby() {
+      this.$emit('update:food', { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby })
+      // Thực hiện cập nhật giá trị sở thích phục vụ cho nội dung con
+      this.foodChild = { ...this.foodChild, ServiceHobbes: this.dataListServiceHobby }
     }
   },
   computed: {
@@ -86,16 +63,50 @@ export default {
     }
   },
   methods: {
+    /**
+     * - Thực hiện lấy dữ liệu các sở thích dịch vụ
+     * - Author: DDKhang (8/7/2023)
+     */
+    async handleFetchServiceHobby() {
+      const dataFilterServiceHobby = {
+        Page: 1,
+        Start: 0,
+        Limit: 20,
+        Filters: []
+      }
+      const result = await filterInfoEntity(
+        this.$EntityNameEnum.ServiceHobbes,
+        dataFilterServiceHobby
+      )
+      this.serviceHobbes = result.data.Data
+    },
+
+    /**
+     * - Thực hiện chuyển đổi thành cấu trúc dữ liệu cho combobox
+     * - Author: DDKhang (3/7/2023)
+     */
+    handleConvertFormatDataCbTable() {
+      const result = this.serviceHobbes.map((sh) => {
+        return {
+          id: sh.ServiceHobbyId,
+          ServiceHobbyName: sh.ServiceHobbyName,
+          MoreMoney: sh.MoreMoney
+        }
+      })
+      return result
+    },
+
+    /**
+     * - Thực hiện lấy các thông tin sở thích theo món ăn tương ứng
+     * - Author: DDKhang (3/7/2023)
+     */
     async handleInitialServiceHobby() {
-      console.log('Hello: ', this.foodChild)
-      // const foodValue = { ...this.foodChild }
       if (this.foodChild.FoodServiceHobby?.length > 0) {
         this.foodServiceHobbes = this.foodChild.FoodServiceHobby?.map((fs) => {
           return fs.ServiceHobbyId
         })
 
         const serviceHobbyIds = this.foodServiceHobbes.join(',')
-        console.log('serviceHobbyIds: ', serviceHobbyIds)
         const res = await getDataById(this.$EntityNameEnum.ServiceHobbes, { ids: serviceHobbyIds })
         this.dataListServiceHobby = [...res.data]
       }
@@ -131,6 +142,7 @@ export default {
      */
     handleChangeInput(event, index) {
       const { value, name } = event.target
+      console.log({ value, name })
       const dataList = [...this.dataListServiceHobby]
       dataList[index][name] = value
 
@@ -161,6 +173,29 @@ export default {
      */
     restrictNonNumeric(event) {
       InputFunctions.restrictNonNumeric(event)
+    },
+
+    /**
+     * - Thực hiện xử lí chọn option của combobox
+     * - Author: DDKhang (3/7/2023)
+     */
+    handleChooseRecordCombobox(item, index) {
+      const { ServiceHobbyName, MoreMoney } = item
+      const dataList = [...this.dataListServiceHobby]
+      dataList[index]['ServiceHobbyName'] = ServiceHobbyName
+      dataList[index]['MoreMoney'] = MoreMoney + '' // Chuyển "Thêm tiền" thành string để đồng nhất vs dữ liệu thay đổi
+
+      if (dataList[index]?.ServiceHobbyId) {
+        // eslint-disable-next-line no-unused-vars
+        const { ServiceHobbyId, ...newData } = dataList[index]
+        dataList[index] = newData
+      }
+      this.dataListServiceHobby = dataList
+    },
+
+    handleChangeInputValue(value) {
+      console.log('Value: ', value)
+      this.foodChild.ServiceHobbyName = value
     }
   }
 }
@@ -207,13 +242,22 @@ export default {
           <div
             class="formItem-value formService__list-serviceByHobby-tbody-item-col-one border-right"
           >
-            <input
+            <!-- <input
               type="text"
               name="ServiceHobbyName"
               :value="itemServiceHobby.ServiceHobbyName"
               @input="(event) => handleChangeInput(event, index)"
               class="input"
               autocomplete="off"
+            /> -->
+            <MISAComboboxTable
+              @input="handleChangeInput($event, index)"
+              :handle-choose-record-item="handleChooseRecordCombobox"
+              name="ServiceHobbyName"
+              :index="index"
+              :value-tranfer="itemServiceHobby.ServiceHobbyName"
+              :list-item-value="this.handleConvertFormatDataCbTable()"
+              @focus="$event.target.select()"
             />
           </div>
           <div class="formItem-value formService__list-serviceByHobby-tbody-item-col-two">
@@ -224,6 +268,7 @@ export default {
               :value="itemServiceHobby.MoreMoney"
               @keydown="restrictNonNumeric"
               @input="(event) => handleChangeInput(event, index)"
+              @focus="$event.target.select()"
               class="input"
               autocomplete="off"
             />
@@ -291,6 +336,7 @@ export default {
   background-color: var(--background-color-table-primary);
   position: sticky;
   top: 0;
+  z-index: 10;
 }
 
 .formService__list-serviceByHobby-thead-column-serviceHobby {

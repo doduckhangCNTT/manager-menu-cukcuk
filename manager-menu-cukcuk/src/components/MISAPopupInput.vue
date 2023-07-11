@@ -26,6 +26,10 @@ export default {
     },
     customClass: {
       type: Object
+    },
+    typeFormat: {
+      type: String,
+      default: 'text'
     }
   },
   components: { MISAInput, MISAPopup },
@@ -122,6 +126,7 @@ export default {
         @keyup.enter="handleEnterInput($event)"
         @blur="handleBlurInput($event)"
         name="textFilter"
+        :type="this.typeFormat"
         v-model="this.inputFilter.textFilter"
       />
     </div>

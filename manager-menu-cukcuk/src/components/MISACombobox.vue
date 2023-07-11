@@ -95,10 +95,10 @@ export default {
     )
   },
   mounted() {
-    window.addEventListener('click', this.handleCloseListItem)
+    document.addEventListener('click', this.handleToggleListItem)
   },
   beforeUnmount() {
-    window.removeEventListener('click', this.handleCloseListItem)
+    document.removeEventListener('click', this.handleToggleListItem)
   },
   computed: {
     /**
@@ -180,9 +180,16 @@ export default {
      * - Author: DDKhang (31/5/2023)
      */
     handleToggleListItem(event) {
-      // Ngăn chặn sự kiện nổi bọt
-      event.stopPropagation()
-      this.isListItem = !this.isListItem
+      event.preventDefault()
+      // Thực hiện đóng những nội dung thẻ combobox khác
+      if (!this.$el.contains(event.target)) {
+        // Nếu mà không phải thẻ hiện tại thì đóng toàn bộ thẻ combobox khác đi
+        if (this.isListItem) {
+          this.isListItem = false
+        }
+      } else {
+        this.isListItem = true
+      }
     },
     /**
      *
@@ -285,13 +292,6 @@ export default {
           const tagParent = tagCurrent.closest('.form-group')
           tagParent.classList.add('invalid')
         }
-        // else {
-        //   // Tham chieu len thẻ cha (".formGroup")
-        //   // const tagParent = tagCurrent.closest(".form-group");
-        //   // tagParent.classList.remove("invalid");
-        //   // Thực hiện thông báo lỗi khi cung cấp sai thông tin phòng ban
-        //   tagCurrent.setAttribute('title', 'Thông tin phòng ban chưa chính xác')
-        // }
       }
     },
     /**
@@ -323,7 +323,8 @@ export default {
           'inputCombobox input-press',
           this.customClass?.widthInput,
           this.customClass?.heightInput,
-          this.customClass?.borderRight
+          this.customClass?.borderRight,
+          this.customClass?.noHandle
         ]"
         :placeholder="this.placeholderInput"
         :required="this.required"
@@ -456,6 +457,8 @@ export default {
 
 .comboboxNew__content--icon {
   height: var(--height-input-primary);
+  display: flex;
+  align-items: center;
   /* padding: 10px 12px; */
   /* border: solid 1px var(--color-border-default); */
   border-radius: 0 var(--border-radius-primary) var(--border-radius-primary) 0;
@@ -554,6 +557,9 @@ export default {
 .backgroundColor--white {
   background-color: #fff;
 }
+.backgroundColor--darkBlue {
+  background-color: rgb(23, 23, 123);
+}
 
 .invalid .inputCombobox {
   border-right: none !important;
@@ -566,5 +572,9 @@ export default {
 .invalid .comboboxNew__content--icon {
   border: 1px solid #cf4c35;
   border-left: none;
+}
+
+.noHandle {
+  pointer-events: none;
 }
 </style>

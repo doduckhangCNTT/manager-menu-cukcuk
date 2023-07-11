@@ -32,6 +32,10 @@ button {
   border: 1px solid var(--color-btn-hover-primary);
   background-color: var(--color-bg-green-primary);
 }
+.button:focus {
+  border: 1px solid var(--color-btn-hover-primary);
+  background-color: var(--color-bg-green-primary);
+}
 
 .button-footer:hover {
   border: 1px solid var(--color-border-default);

@@ -1,9 +1,37 @@
 <script>
 import { Icon } from '@iconify/vue'
+import MISACombobox from '../components/MISACombobox.vue'
+
 export default {
   name: 'TheHeader',
   components: {
-    Icon
+    Icon,
+    MISACombobox
+  },
+  data() {
+    return {
+      optionsTypeRecord: [
+        {
+          id: 'ss-1',
+          value: 'Cukcuk',
+          valueFilter: '(0, 1)', // Tìm kiếm theo điều kiện có
+          typeCondition: 'IN',
+          property: 'ShowOnMenu',
+          type: 'string',
+          addition: 'and'
+        }
+      ],
+      optionsNumberRecord: [
+        {
+          id: 1,
+          value: 'VN'
+        },
+        {
+          id: 2,
+          value: 'EN'
+        }
+      ]
+    }
   },
   methods: {
     /**
@@ -13,6 +41,37 @@ export default {
     handleComebackHome() {
       // Phát đến MenuList.vue
       this.$msemitter.emit(this.$EmitterEnum.refreshPage)
+    },
+    handleChooseRecordCombobox(option) {
+      console.log(option)
+    },
+    /**
+     * - Thực hiện thêm các class tương ứng để điều chỉnh combobox
+     * - Author: DDKhang (1/7/2023)
+     */
+    handleCustomClassCombobox() {
+      return {
+        borderLeftNone: 'border-left--none',
+        listItemTop: 'list-item--top',
+        backgroundWhite: 'backgroundColor--white',
+        widthInput: 'width-50'
+      }
+    },
+    /**
+     * - Thực hiện thêm các class tương ứng để điều chỉnh combobox
+     * - Author: DDKhang (1/7/2023)
+     */
+    handleCustomClassComboboxProductName() {
+      return {
+        borderLeftNone: 'border-left--none',
+        listItemTop: 'list-item--top',
+        backgroundWhite: 'backgroundColor--white',
+        widthInput: 'width-150'
+      }
+    },
+
+    handleChooseQualityRecord(option) {
+      console.log(option)
     }
   }
 }
@@ -29,10 +88,26 @@ export default {
 
     <!-- Panel header -->
     <div class="header-right">
-      <div class="header-right__type-manager">Combobox</div>
+      <div class="header-right__type-manager">
+        <MISACombobox
+          ref="comboboxRef"
+          :customClass="this.handleCustomClassComboboxProductName()"
+          :listItemValue="this.optionsTypeRecord"
+          :defaultValueInput="this.optionsTypeRecord[0]"
+          :handleChooseRecord="this.handleChooseQualityRecord"
+        ></MISACombobox>
+      </div>
 
       <div class="header-right__panel">
-        <div class="header-right__panel-cbLanguage">Combobox Language</div>
+        <div class="header-right__panel-cbLanguage">
+          <MISACombobox
+            ref="comboboxRef"
+            :customClass="this.handleCustomClassCombobox()"
+            :listItemValue="this.optionsNumberRecord"
+            :defaultValueInput="this.optionsNumberRecord[0]"
+            :handleChooseRecord="this.handleChooseQualityRecord"
+          ></MISACombobox>
+        </div>
         <div class="header-right__panel-iconWorld">
           <Icon icon="fluent-mdl2:world" color="white" width="18" height="18" />
         </div>
@@ -41,7 +116,7 @@ export default {
         </div>
         <div class="header-right__panel-popupPersonalInfo">
           <div class="icon-personal"></div>
-          <span>Tên người dùng</span>
+          <span>Đỗ Đức Khang</span>
         </div>
       </div>
     </div>
