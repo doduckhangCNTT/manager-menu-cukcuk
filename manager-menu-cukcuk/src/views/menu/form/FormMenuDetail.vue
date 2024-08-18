@@ -103,11 +103,11 @@ export default {
     // Thực hiện lấy toàn bộ giá trị đối tượng food cha
     this.foodChild = this.food
     this.handleReferenceInputRequired()
-    // document.addEventListener('keydown', this.handleTabKey)
+    window.addEventListener('keydown', this.handleTabKey)
   },
   beforeUnmount() {
     this.$msemitter.off(this.$EmitterEnum.showValidateInput, this.handleShowValidateInputError)
-    // document.removeEventListener('keydown', this.handleTabKey)
+    window.removeEventListener('keydown', this.handleTabKey)
   },
   watch: {
     foodChild() {
@@ -163,7 +163,6 @@ export default {
      * Author: DDKhang (11/5/2023)
      */
     handleTabKey(event) {
-      console.log('Hello 2')
       if (event.keyCode === 9 && event.target === document.activeElement) {
         // Kiểm tra xem phần tử đang focus có phải là phần tử cuối cùng hay không
         const lastTabIndex = 12 // Thay thế N bằng tabIndex của phần tử cuối cùng
@@ -305,15 +304,35 @@ export default {
      * - Author: DDKhang (27/6/2023)
      */
     handleChooseRecordCombobox(option) {
+      console.log('Option: ', option)
       switch (option.typeCombobox) {
         case this.$TypeComboboxEnum.MenuGroup:
           this.foodChild.MenuGroupId = option.id
+          this.foodChild.MenuGroupName = option.value
+
+          // Cập nhật cho đối tượng nhóm đồ ăn
+          this.menuGroup.MenuGroupId = option.id
+          this.menuGroup.MenuGroupName = option.value
+
           break
         case this.$TypeComboboxEnum.FoodUnit:
           this.foodChild.FoodUnitId = option.id
+          this.foodChild.FoodUnitName = option.value
+
+          // Cập nhật cho đối tượng đơn vị đồ ăn
+          this.foodUnit.FoodUnitId = option.id
+          this.foodUnit.FoodUnitName = option.value
           break
         case this.$TypeComboboxEnum.FoodProcessingPlace:
           this.foodChild.FoodProcessingPlaceId = option.id
+          // this.foodChild.FoodProcessingPlaceId = option.value
+          // Cập nhật cho đối tượng nơi chế biếnk
+          this.foodProcessingPlace.FoodProcessingPlaceId = option.id
+          // this.foodProcessingPlace.FoodProcessingPlaceName = option.value
+
+          this.foodProcessingPlace.FoodProcessingPlaceId = option.id
+          this.foodProcessingPlace.FoodProcessingPlaceName = option.value
+
           break
       }
     },
@@ -328,6 +347,8 @@ export default {
       return {
         id: this.menuGroup.MenuGroupId,
         value: this.menuGroup.MenuGroupName
+        // id: this.menuGroup.MenuGroupId,
+        // value: this.menuGroup.MenuGroupName
       }
     },
     /**
@@ -389,7 +410,8 @@ export default {
      * - Author: DDKhang (2/7/2023)
      */
     handleChangeFile(event) {
-      event.preventDefault()
+      // event.preventDefault()
+      console.log('Hello')
       const file = event.target.files[0] // Lấy tệp hình ảnh từ sự kiện
       const reader = new FileReader() // Tạo đối tượng đọc file
 
@@ -497,7 +519,13 @@ export default {
       // Lấy các chữ cái đầu của tên món ăn
       let code = ''
       const words = value.split(/\s+/)
-      words.forEach((w) => (code += w[0]))
+      words.forEach(
+        (w) =>
+          (code += w[0]
+            ?.normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ|Đ/, 'd'))
+      )
 
       if (this.food.FoodName && !this.food.FoodCode) {
         const newFoodCode = await getNewCode(this.$EntityNameEnum.Foods, code)
@@ -612,6 +640,7 @@ export default {
             v-model="this.foodChild.Price"
             :required="true"
             @keydown="restrictNonNumeric"
+            @focus="$event.target.select()"
             ref="priceRef"
             type="number"
             :tabindex="this.$TabIndexEnum.formFoodInfo.Price"
@@ -634,6 +663,7 @@ export default {
             class="w-1-2 input-text-right"
             v-model="this.foodChild.InitialPrice"
             @keydown="restrictNonNumeric"
+            @focus="$event.target.select()"
             type="number"
             :tabindex="this.$TabIndexEnum.formFoodInfo.InitialPrice"
           />

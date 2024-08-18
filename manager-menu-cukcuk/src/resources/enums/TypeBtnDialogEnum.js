@@ -6,7 +6,9 @@ const TypeBtnDialogEnum = {
 
   TypeHandleTask: {
     deleteElement: 'deleteElement',
-    validateElement: 'validateElement'
+    validateElement: 'validateElement',
+    validateDuplicateNameBlurInput: 'validateDuplicateBlurInput',
+    validateDuplicateNameChooseRecord: 'validateDuplicateChooseRecord'
   }
 }
 

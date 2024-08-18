@@ -4,6 +4,10 @@ import { Icon } from '@iconify/vue'
 import { filterInfoEntity, getDataById } from '../../../utils/FetchData'
 import InputFunctions from '../../../utils/functions/InputFunctions'
 import MISAComboboxTable from '../../../components/MISAComboboxTable.vue'
+import { FormatNumberPrice } from '../../../utils/functions/FormatNumber'
+// import { FormatNumberPrice } from '../../../utils/functions/FormatNumber'
+import MISADialog from '../../../components/MISADialog.vue'
+// import MISAInput from '../../../components/MISAInput.vue'
 
 export default {
   name: 'FormServiceHobby',
@@ -12,15 +16,19 @@ export default {
       type: Object
     }
   },
-  components: { MISAButton, Icon, MISAComboboxTable },
+  components: { MISAButton, Icon, MISAComboboxTable, MISADialog },
   data() {
     return {
-      dataListServiceHobby: [{ ServiceHobbyName: '', MoreMoney: '' }], // Dánh sách chứa các giá trị của dòng input trong bảng
+      dataListServiceHobby: [{ ServiceHobbyId: '', ServiceHobbyName: '', MoreMoney: '' }], // Dánh sách chứa các giá trị của dòng input trong bảng
       selectIndexLine: 0, // Vị trí hiện tại trên dòng tương ứng (mặc định đang focus vào dòng đầu tiên)
       foodChild: {},
       foodServiceHobbes: [],
       foodId: null,
-      serviceHobbes: []
+      serviceHobbes: [],
+
+      // Đối tượng dialog thông báo/Hỏi/Cảnh báo
+      objDialog: {},
+      isDialogNotification: false // Trạng thái đóng mở dialog
     }
   },
   async created() {
@@ -56,13 +64,22 @@ export default {
      */
     isDisableBtnRemoveLine() {
       const qualityItems = this.dataListServiceHobby.length
-      if (qualityItems <= 1) {
+      if (qualityItems < 1) {
         return true // Thực hiện ẩn
       }
       return false // Không thực hiện ẩn
     }
   },
   methods: {
+    /**
+     *
+     * @param {*} value - Gía trị tiền muốn cấu trúc định dạng
+     * - Author: DDKhang (13/7/2023)
+     */
+    handleFormatNumberPrice(value) {
+      const data = { type: 'number', value }
+      return FormatNumberPrice(data)
+    },
     /**
      * - Thực hiện lấy dữ liệu các sở thích dịch vụ
      * - Author: DDKhang (8/7/2023)
@@ -108,7 +125,13 @@ export default {
 
         const serviceHobbyIds = this.foodServiceHobbes.join(',')
         const res = await getDataById(this.$EntityNameEnum.ServiceHobbes, { ids: serviceHobbyIds })
-        this.dataListServiceHobby = [...res.data]
+        const formatValueServiceHobby = res.data.map((item) => {
+          if (!item.MoreMoney) {
+            return { ...item, MoreMoney: 0 }
+          }
+          return item
+        })
+        this.dataListServiceHobby = [...formatValueServiceHobby]
       }
     },
 
@@ -142,9 +165,8 @@ export default {
      */
     handleChangeInput(event, index) {
       const { value, name } = event.target
-      console.log({ value, name })
       const dataList = [...this.dataListServiceHobby]
-      dataList[index][name] = value
+      dataList[index][name] = value.split('.').join('')
 
       // Khi có sự thay đổi trên input thì loại bỏ thuộc tính ServiceHobbyId để khi chuyển
       // lên backend sẽ được hiểu là thêm mới
@@ -154,6 +176,34 @@ export default {
         dataList[index] = newData
       }
       this.dataListServiceHobby = dataList
+    },
+
+    handleBlurInputChange(event) {
+      const { value } = event.target
+      console.log('Hello 123', value)
+      const isDupNameServiceHobby = this.handleDuplicateNameServiceHobby(value)
+      if (isDupNameServiceHobby) {
+        // Thông báo lỗi
+        this.objDialog = {
+          titleDialog: this.$ResourceDialogNotification.titleDialog,
+          contentDialog: 'Dữ liệu vừa nhập đã tồn tại trong danh sở thích đã chọn.',
+          iconContent: {
+            name: 'ph:question-fill',
+            color: '#0072bc'
+          },
+          // typeHandle: this.$TypeBtnDialogEnum.TypeHandleTask.deleteElement,
+          isBtnHave: false,
+          isBtnNo: false,
+          isBtnCancel: false,
+          isBtnAgree: true
+        }
+        // 2. Mở dialog form
+        this.isDialogNotification = true
+        // Thực hiện xóa dòng trùng lặp tên
+        this.handleRemoveLineServiceHobby()
+      } else {
+        this.handleChangeInput(event)
+      }
     },
 
     /**
@@ -175,33 +225,150 @@ export default {
       InputFunctions.restrictNonNumeric(event)
     },
 
+    handleDuplicateNameServiceHobby(nameServiceHobby, typeChooseRecordeCb) {
+      const serviceHobbes = this.dataListServiceHobby.filter(
+        (sh) => sh.ServiceHobbyName === nameServiceHobby
+      )
+      if (typeChooseRecordeCb && typeChooseRecordeCb === 'typeChooseRecordCb') {
+        if (serviceHobbes.length >= 1) {
+          return true
+        }
+      } else {
+        if (serviceHobbes.length >= 2) {
+          return true
+        }
+      }
+      return false
+    },
+
     /**
      * - Thực hiện xử lí chọn option của combobox
      * - Author: DDKhang (3/7/2023)
      */
     handleChooseRecordCombobox(item, index) {
+      console.log('Item: ', item)
       const { ServiceHobbyName, MoreMoney } = item
+      // let isDupNameServiceHobby = false
+      // if (ServiceHobbyName) {
+      //   isDupNameServiceHobby = this.handleDuplicateNameServiceHobby(
+      //     ServiceHobbyName,
+      //     'typeChooseRecordCb'
+      //   )
+      // }
+
+      // if (isDupNameServiceHobby) {
+      //   // Thông báo lỗi
+      //   this.objDialog = {
+      //     titleDialog: this.$ResourceDialogNotification.titleDialog,
+      //     contentDialog: 'Dữ liệu vừa nhập đã tồn tại trong danh sở thích đã chọn.',
+      //     iconContent: {
+      //       name: 'ph:question-fill',
+      //       color: '#0072bc'
+      //     },
+      //     typeHandle: this.$TypeBtnDialogEnum.TypeHandleTask.validateDuplicateNameChooseRecord,
+      //     isBtnHave: false,
+      //     isBtnNo: false,
+      //     isBtnCancel: false,
+      //     isBtnAgree: true
+      //   }
+      //   // 2. Mở dialog form
+      //   this.isDialogNotification = true
+      // } else {
       const dataList = [...this.dataListServiceHobby]
+      // if (id) {
+      //   dataList[index]['ServiceHobbyId'] = id
+      // }
       dataList[index]['ServiceHobbyName'] = ServiceHobbyName
       dataList[index]['MoreMoney'] = MoreMoney + '' // Chuyển "Thêm tiền" thành string để đồng nhất vs dữ liệu thay đổi
 
-      if (dataList[index]?.ServiceHobbyId) {
-        // eslint-disable-next-line no-unused-vars
-        const { ServiceHobbyId, ...newData } = dataList[index]
-        dataList[index] = newData
-      }
+      // if (dataList[index]?.ServiceHobbyId) {
+      //   // eslint-disable-next-line no-unused-vars
+      //   const { ServiceHobbyId, ...newData } = dataList[index]
+      //   dataList[index] = newData
+      // }
       this.dataListServiceHobby = dataList
+      // }
     },
 
     handleChangeInputValue(value) {
-      console.log('Value: ', value)
       this.foodChild.ServiceHobbyName = value
+    },
+
+    async handleChooseBtnPanelOnDialog(typeBtn) {
+      switch (typeBtn) {
+        case this.$TypeBtnDialogEnum.Have:
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+        case this.$TypeBtnDialogEnum.No:
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+        case this.$TypeBtnDialogEnum.Cancel:
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+        case this.$TypeBtnDialogEnum.Agree:
+          if (
+            this.objDialog.typeHandle ===
+              this.$TypeBtnDialogEnum.TypeHandleTask.validateDuplicateNameBlurInput ||
+            this.objDialog.typeHandle ===
+              this.$TypeBtnDialogEnum.TypeHandleTask.validateDuplicateNameChooseRecord
+          ) {
+            // Thực hiện xóa dòng trùng lặp tên
+            this.handleRemoveLineServiceHobby()
+          }
+
+          // Thực hiện đóng dialog thông báo
+          this.isDialogNotification = false
+          break
+      }
+    },
+
+    handleBlurInputRecordItem(value) {
+      let isDupNameServiceHobby = false
+      if (value.trim() !== '') {
+        isDupNameServiceHobby = this.handleDuplicateNameServiceHobby(value)
+      }
+
+      if (isDupNameServiceHobby) {
+        // Thông báo lỗi
+        this.objDialog = {
+          titleDialog: this.$ResourceDialogNotification.titleDialog,
+          contentDialog: 'Dữ liệu vừa nhập đã tồn tại trong danh sở thích đã chọn 123.',
+          iconContent: {
+            name: 'ph:question-fill',
+            color: '#0072bc'
+          },
+          typeHandle: this.$TypeBtnDialogEnum.TypeHandleTask.validateDuplicateNameBlurInput,
+          isBtnHave: false,
+          isBtnNo: false,
+          isBtnCancel: false,
+          isBtnAgree: true
+        }
+        // 2. Mở dialog form
+        this.isDialogNotification = true
+      } else {
+        // const serviceHobbes = this.foodChild.ServiceHobbes.map((sh) => {
+        //   if (sh.ServiceHobbyId) {
+        //     return sh
+        //   }
+        // })
+        // this.foodChild.ServiceHobbes = serviceHobbes
+      }
     }
   }
 }
 </script>
 
 <template>
+  <MISADialog
+    v-if="this.isDialogNotification"
+    :objDialog="this.objDialog"
+    :handleChooseBtnPanelOnDialog="handleChooseBtnPanelOnDialog"
+  >
+  </MISADialog>
+
   <div class="formService">
     <!-- Ghi chú & giải thích cách thêm sở thích -->
     <div class="formService__info-attention">
@@ -251,6 +418,7 @@ export default {
               autocomplete="off"
             /> -->
             <MISAComboboxTable
+              ref="comboboxTableRef"
               @input="handleChangeInput($event, index)"
               :handle-choose-record-item="handleChooseRecordCombobox"
               name="ServiceHobbyName"
@@ -265,13 +433,25 @@ export default {
               type="text"
               style="text-align: end"
               name="MoreMoney"
-              :value="itemServiceHobby.MoreMoney"
+              :value="handleFormatNumberPrice(itemServiceHobby.MoreMoney)"
               @keydown="restrictNonNumeric"
               @input="(event) => handleChangeInput(event, index)"
               @focus="$event.target.select()"
               class="input"
               autocomplete="off"
             />
+
+            <!-- <MISAInput
+              type="number"
+              style="text-align: end"
+              name="MoreMoney"
+              :model-value="this.handleFormatNumberPrice(itemServiceHobby.MoreMoney)"
+              @keydown="restrictNonNumeric"
+              @input="(event) => handleChangeInput(event, index)"
+              @focus="$event.target.select()"
+              class="input"
+              autocomplete="off"
+            /> -->
           </div>
         </div>
       </div>
@@ -336,7 +516,7 @@ export default {
   background-color: var(--background-color-table-primary);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 3;
 }
 
 .formService__list-serviceByHobby-thead-column-serviceHobby {

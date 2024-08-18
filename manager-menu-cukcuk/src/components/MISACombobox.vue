@@ -95,10 +95,10 @@ export default {
     )
   },
   mounted() {
-    document.addEventListener('click', this.handleToggleListItem)
+    window.addEventListener('click', this.handleToggleListItem)
   },
   beforeUnmount() {
-    document.removeEventListener('click', this.handleToggleListItem)
+    window.removeEventListener('click', this.handleToggleListItem)
   },
   computed: {
     /**
@@ -180,11 +180,11 @@ export default {
      * - Author: DDKhang (31/5/2023)
      */
     handleToggleListItem(event) {
-      event.preventDefault()
       // Thực hiện đóng những nội dung thẻ combobox khác
       if (!this.$el.contains(event.target)) {
         // Nếu mà không phải thẻ hiện tại thì đóng toàn bộ thẻ combobox khác đi
         if (this.isListItem) {
+          // event.preventDefault()
           this.isListItem = false
         }
       } else {
@@ -209,6 +209,9 @@ export default {
           this.selectedIndex = newIndex
           this.value = this.listItem[newIndex]
           this.item = this.listItem[newIndex]
+
+          console.log('SelectIndex: ', this.selectedIndex)
+          this.scrollToItem(this.selectedIndex)
         }
       } else if (event.key === 'ArrowUp') {
         event.preventDefault()
@@ -222,6 +225,8 @@ export default {
           this.selectedIndex = newIndex
           this.value = this.listItem[newIndex]
           this.item = this.listItem[newIndex]
+
+          this.scrollToItem(this.selectedIndex)
         }
       }
     },
@@ -307,6 +312,25 @@ export default {
         console.log('Hello', listItemFilter)
         // this.listItem = listItemFilter
       }
+    },
+
+    /**
+     * Scroll đến vị trí cho trước
+     * Created By: DDKhang (30/5/2023)
+     * Modified By: DDKhang (13/7/2023)
+     */
+    scrollToItem(indexScroll) {
+      const listItem = this.$refs['itemRef' + indexScroll]
+      const parentElement = this.$refs.listItemRef
+      const parentRect = parentElement.getBoundingClientRect()
+
+      if (listItem) {
+        setTimeout(() => {
+          const childRect = listItem[0].getBoundingClientRect()
+          const scrollTop = childRect.top - parentRect.top + parentElement.scrollTop - 28 * 3
+          parentElement.scrollTop = scrollTop
+        }, 100)
+      }
     }
   },
   components: { Icon }
@@ -381,6 +405,7 @@ export default {
           }`"
       -->
       <ul
+        ref="listItemRef"
         :style="`top: ${
           this.customClass?.listItemTop
             ? this.handleShowTopListItem < this.handleCalcHeightDefaultListItem * -1
@@ -397,6 +422,7 @@ export default {
       >
         <li
           v-for="(item, index) in this.listItem"
+          :ref="'itemRef' + index"
           @click="this.handleListItemClick(item, index)"
           :key="index"
           :class="{ selected: index === selectedIndex }"

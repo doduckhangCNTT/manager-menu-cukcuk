@@ -27,6 +27,8 @@ export default {
       food: {
         StopSelling: 0,
         ShowOnMenu: 0,
+        Price: '0',
+        InitialPrice: '0',
         ServiceHobbes: []
       },
       // Đối tượng dialgo thông báo/Hỏi/Cảnh báo
@@ -97,6 +99,11 @@ export default {
     window.removeEventListener('keydown', this.handleKeyDown)
   },
   methods: {
+    onResize(event) {
+      // Cập nhật kích thước của form khi thay đổi kích thước
+      this.formWidth = event.width
+      this.formHeight = event.height
+    },
     /**
      *
      * @param {*} status - Trạng thái của việc kiểm tra rỗng trên các thẻ input
@@ -117,9 +124,13 @@ export default {
         console.log('Handle Initial Dialog Update / Duplicate')
         if (this.foodId) {
           const res = await getDataById(this.$EntityNameEnum.Foods, { ids: this.foodId })
+          const foodItem = res.data[0]
+          if (!foodItem.Price) foodItem.Price = '0'
+          if (!foodItem.InitialPrice) foodItem.InitialPrice = '0'
+
           // Lưu giữ giá trị ban đầu -> close Form
-          this.foodBeforeUpdate = JSON.stringify(res.data[0])
-          this.food = res.data[0]
+          this.foodBeforeUpdate = JSON.stringify(foodItem)
+          this.food = foodItem
         }
       } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
         if (this.foodId) {
@@ -133,10 +144,16 @@ export default {
           // Lấy các chữ cái đầu của tên món ăn
           let code = ''
           const words = value.FoodName?.split(/\s+/)
-          words.forEach((w) => (code += w[0]))
+          words.forEach(
+            (w) =>
+              (code += w[0]
+                ?.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ|Đ/, 'd'))
+          )
 
           const newFoodCode = await getNewCode(this.$EntityNameEnum.Foods, code)
-          this.food.FoodCode = newFoodCode.data
+          this.food.FoodCode = newFoodCode?.data
         }
       }
     },
@@ -185,8 +202,12 @@ export default {
               if (this.food[key].length > 0) {
                 flagEmpty = true
               }
+            } else if (key === 'Price' || key === 'InitialPrice') {
+              if (this.food[key] === 0) {
+                flagEmpty = false
+              }
             } else if (!noCheckEmpty.includes(key)) {
-              if (this.food[key].trim() !== '') {
+              if (this.food[key]?.trim() !== '') {
                 flagEmpty = true
                 return
               }

@@ -98,7 +98,7 @@ export default {
         let value = event.target.value + ''
         let strPointer = value.substring(0, event.target.selectionStart)
         let numberAfterFormat = this.formatData(strPointer)
-        this.positionPointer = numberAfterFormat.length
+        this.positionPointer = numberAfterFormat?.length
       }
       if (this.type == 'number') {
         let inputValue = (event.target.value + '').replace(/\D/g, '')
@@ -148,7 +148,7 @@ export default {
         if (!value) {
           // Tham chieu len thẻ cha (".formGroup")
           const tagParent = tagCurrent?.closest('.form-group')
-          tagParent.classList.add('invalid')
+          tagParent?.classList.add('invalid')
         }
       }
     }

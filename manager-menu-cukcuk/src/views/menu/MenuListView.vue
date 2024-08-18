@@ -64,6 +64,13 @@ export default {
     this.optionsFoodTypeRecord = ContentCombobox.optionsFoodTypeRecord
     this.optionsStopSelling = ContentCombobox.optionsStopSelling
     this.optionsShowOnMenu = ContentCombobox.optionsShowOnMenu
+
+    // Khởi tạo giá trị ban đầu cho sort
+    this.optionsSort.push({
+      property: 'FoodName',
+      statusSort: 2,
+      direction: 'ASC'
+    })
     // Lấy dữ liệu ban đầu
     this.fetchData()
 
@@ -102,14 +109,19 @@ export default {
     }
   },
   methods: {
+    /**
+     *
+     * @param {*} status - Trạng thái sắp xếp
+     * - Thực hiện trả về icon theo class tương ứng với trạng thái sắp xếp
+     * - Author: DDKhang (11/7/2023)
+     */
     handleIconSortByStatus(status) {
-      console.log('Status Number: ', status)
       let nameIconSort = ''
-      if (status === 0) {
+      if (status === this.$StatusSortEnum.NoSort.number) {
         nameIconSort = ''
-      } else if (status === 1) {
+      } else if (status === this.$StatusSortEnum.Decrease.number) {
         nameIconSort = 'arrow-down'
-      } else if (status === 2) {
+      } else if (status === this.$StatusSortEnum.Increase.number) {
         nameIconSort = 'arrow-up'
       }
       return nameIconSort
@@ -176,7 +188,7 @@ export default {
           clearInterval(intervalId)
           this.loading = false
         }
-      }, 2000)
+      }, 500)
       this.filterOptions = []
       const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
       this.loadingProgress = 100
@@ -215,7 +227,7 @@ export default {
             clearInterval(intervalId)
             this.loading = false
           }
-        }, 2000)
+        }, 500)
         const res = await filterInfoEntity(this.$EntityNameEnum.Foods, newFormatOptionFilter)
         this.loadingProgress = 100
         this.menuFoods = res.data.Data
@@ -231,9 +243,10 @@ export default {
      * - Author: DDKhang (23/6/2023)
      */
     handleRedirectMenuCreate(typeBtn) {
+      const { page, limit } = this.handleQueryUrl
       switch (typeBtn) {
         case this.$TypeToolbarBtnEnum.create:
-          this.$router.push('/menu/create')
+          this.$router.push({ path: '/menu/create', query: { page, limit } })
           break
         case this.$TypeToolbarBtnEnum.edit:
           if (this.selectedRows.length > 0) {
@@ -311,6 +324,7 @@ export default {
     handleClickPopupRightItem(btnType) {
       switch (btnType) {
         case this.$TypeToolbarBtnEnum.create:
+          this.handelShowFormCreate()
           console.log('Create')
           break
         case this.$TypeToolbarBtnEnum.duplicate:
@@ -451,7 +465,6 @@ export default {
      * - Author: DDKhang (10/7/2023)
      */
     handleChangeValueFilter(typeDb, value, typeCondition) {
-      console.log({ typeDb, value, typeCondition })
       let isFlagChange = false
       const item = this.newOptionFilters?.filter((n) => {
         return n.property === typeDb
@@ -479,8 +492,8 @@ export default {
      * - Author: DDKhang (25/6/2023)
      */
     async handleFilterPopupInput(option) {
-      console.log('Option: ', option)
       try {
+        // this.loading = true
         let isChangeFilter = true
         const filterOptions = [...this.filterOptions]
         let newOptionFilter = [] // Chứa option filter
@@ -494,8 +507,6 @@ export default {
           )
           isChangeFilter = isHandleChange
         }
-
-        console.log('IsChangeFilter: ', isChangeFilter)
 
         // Nếu có sự thay đổi giá trị filter
         if (isChangeFilter) {
@@ -555,7 +566,18 @@ export default {
 
           const res = await filterInfoEntity(this.$EntityNameEnum.Foods, formatOptionFilter)
           this.menuFoodStore.setDataFilter(res.data)
+
+          // const intervalId = setInterval(() => {
+          //   if (this.loadingProgress < 100) {
+          //     this.loadingProgress += 8
+          //   } else {
+          //     clearInterval(intervalId)
+          //     this.loading = false
+          //   }
+          // }, 500)
+
           this.menuFoods = res.data.Data
+          // this.loading = false
         }
       } catch (error) {
         console.log('error: ', error)
@@ -565,7 +587,13 @@ export default {
 
     // ##### --- Xử lí thao tác cho dialog form - Start --- #####
     handleEditRowItem(menuId) {
-      this.$router.push(`/menu/${menuId}`)
+      const { page, limit } = this.handleQueryUrl
+      this.$router.push({ path: `/menu/${menuId}`, query: { page, limit } })
+    },
+
+    handelShowFormCreate() {
+      const { page, limit } = this.handleQueryUrl
+      this.$router.push({ path: `/menu/create`, query: { page, limit } })
     },
     // --- End ---
 
@@ -664,7 +692,7 @@ export default {
             clearInterval(intervalId)
             this.loading = false
           }
-        }, 2000)
+        }, 1000)
         const { limit } = this.$route.query
         this.$router.push({ query: { page: pagePresent, limit } })
         // Cấu hình lại dữ liệu gửi lên để lọc
@@ -1008,6 +1036,7 @@ export default {
                     @keydown="restrictNonNumeric"
                     typeFormat="number"
                   />
+                  <!-- typeFormat="number" -->
                 </div>
               </th>
               <th class="table-menu__theadItem-filter width-200 min-width-200">

@@ -93,9 +93,11 @@ export default {
      * - Xử lí blur ra ngoài input để thực hiện lấy thông tin input
      * - Author: DDKhang (23/6/2023)
      */
-    handleBlurInput(event) {
-      const { value } = event.target
-      this.inputFilter.textFilter = value
+    handleBlurInput() {
+      // const { value } = event.target
+      // this.inputFilter.textFilter = value
+      const value = this.inputFilter.textFilter
+
       const option = {
         ...this.itemPopup,
         valueFilter: value,

@@ -13,6 +13,9 @@ export default {
     handleChooseRecordItem: {
       type: Function
     },
+    handleBlurInputRecordItem: {
+      type: Function
+    },
     index: {
       type: Number
     },
@@ -36,7 +39,9 @@ export default {
       currentListItemValue: [],
       selectedIndex: -1,
       isListItem: false,
-      isShowBtnIcon: false
+      isShowBtnIcon: false,
+      cbContentTop: 0,
+      cbContentLeft: 0
     }
   },
   components: { Icon },
@@ -62,10 +67,10 @@ export default {
   },
   created() {},
   mounted() {
-    document.addEventListener('click', this.handleToggleContentCb)
+    window.addEventListener('click', this.handleToggleContentCb)
   },
   beforeUnmount() {
-    document.removeEventListener('click', this.handleToggleContentCb)
+    window.removeEventListener('click', this.handleToggleContentCb)
   },
   methods: {
     /**
@@ -73,17 +78,17 @@ export default {
      * - Author: DDKhang (5/7/2023)
      */
     handleToggleContentCb(event) {
-      // Ngăn chặn sự kiện nổi bọt
       // event.stopPropagation()
       // this.isShowContentCb = !this.isShowContentCb
-      event.preventDefault()
+      // event.preventDefault()
       // Thực hiện đóng những nội dung thẻ combobox khác
-      if (!this.$el.contains(event.target)) {
+      if (!this.$el.contains(event?.target)) {
         // Nếu mà không phải thẻ hiện tại thì đóng toàn bộ thẻ combobox khác đi
         if (this.isShowContentCb) {
           this.isShowContentCb = false
         }
       } else {
+        // Ngăn chặn sự kiện nổi bọt
         this.isShowContentCb = true
       }
     },
@@ -92,6 +97,7 @@ export default {
      * - Author: DDKhang (6/7/2023)
      */
     handleCloseListItem() {
+      event.stopPropagation()
       this.isShowContentCb = false
     },
     /**
@@ -104,7 +110,7 @@ export default {
       const { value } = event.target
       if (value.trim()) {
         const result = this.currentListItemValue.filter((i) =>
-          i.ServiceHobbyName.includes(value.trim())
+          i.ServiceHobbyName.toLowerCase().includes(value.trim().toLowerCase())
         )
         console.log('Result: ', result)
         this.contentComboboxFilter = [...result]
@@ -118,6 +124,7 @@ export default {
      * - Author: DDKhang (5/7/2023)
      */
     handleChooseRecord(item, index) {
+      //event.stopPropagation() // Ngăn chặn hành vị mặc đinh khi
       this.handleCloseListItem()
       this.selectedIndex = index
       this.selectedRecord = { ...item }
@@ -180,6 +187,13 @@ export default {
         this.handleChooseRecord(newItem, this.selectedIndex)
       }
     },
+
+    /**
+     * 
+     * @param {*} event - Sự kiện
+     * - Bắt sự thay đổi giá trị trên input
+     * - Author: DDKhang (31/5/2023)
+     */
     handleChangeInputValue(event) {
       this.$emit('update:modelValue', event.target.value)
     },
@@ -187,8 +201,20 @@ export default {
     handleFocusShowBtnArrowIcon() {
       this.isShowBtnIcon = true
     },
-    handleBlurShowBtnArrowIcon() {
+    handleBlurShowBtnArrowIcon(event) {
+      const { value } = event.target
       this.isShowBtnIcon = false
+      this.handleBlurInputRecordItem(value)
+    },
+
+    handleGetPositionContent() {
+      // this.handleToggleContentCb()
+
+      const inputElement = this.$refs.inputField
+      const { offsetLeft, offsetTop, offsetHeight } = inputElement
+
+      this.cbContentTop = offsetTop + offsetHeight + 28
+      this.cbContentLeft = offsetLeft + 28
     }
   }
 }
@@ -197,7 +223,7 @@ export default {
 <template>
   <div>
     <div class="combobox-table">
-      <div class="combobox-table-panel" @click="handleToggleContentCb">
+      <div class="combobox-table-panel">
         <input
           ref="inputField"
           class="combobox-table-input"
@@ -205,10 +231,11 @@ export default {
           :name="this.name"
           @input="handleChangeInput($event)"
           @focus="handleFocusShowBtnArrowIcon()"
-          @blur="handleBlurShowBtnArrowIcon()"
+          @blur="handleBlurShowBtnArrowIcon"
           @keydown="handleListItemKey"
           @keyup.enter="handleEnterKey"
           v-model="selectedRecord.ServiceHobbyName"
+          @click="handleGetPositionContent"
           autocomplete="off"
         />
         <button class="combobox-table-btnIcon" v-show="this.isShowBtnIcon">
@@ -223,7 +250,7 @@ export default {
       </div>
 
       <div class="combobox-table-content" v-show="this.isShowContentCb" style="overflow: auto">
-        <div class="combobox-table-thead" style="position: sticky; top: 0">
+        <div class="combobox-table-thead" style="position: sticky; top: -1px">
           <div class="combobox-table-thead-title border-right">Sở thích</div>
           <div class="combobox-table-thead-title">Thêm tiền</div>
         </div>
@@ -281,9 +308,9 @@ export default {
 }
 
 .combobox-table-content {
-  position: absolute;
+  position: fixed;
   background-color: #fff;
-  width: 100%;
+  width: 350px;
   box-shadow: 0px 3px 25px rgba(124, 130, 141, 0.2);
   z-index: 6;
 }
@@ -302,6 +329,7 @@ export default {
 }
 
 .combobox-table-body {
+  overflow: auto;
 }
 .combobox-table-content-list {
 }
