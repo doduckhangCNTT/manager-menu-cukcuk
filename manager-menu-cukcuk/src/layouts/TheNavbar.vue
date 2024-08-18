@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, onBeforeUnmount } from 'vue'
+import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import ResourceNavbar from '../resources/resource/ResourceNavbar'
 import MISAPopupMenuItem from '../components/MISAPopupMenuItem.vue'
@@ -45,40 +45,6 @@ const listNavbarItem = [
             link: '/cbd'
           }
         ]
-      },
-      {
-        title: 'Khang',
-        components: [
-          {
-            title: 'abc 1',
-            link: '/abc'
-          },
-          {
-            title: 'bcd 1',
-            link: '/bcd'
-          },
-          {
-            title: 'cbd 1',
-            link: '/cbd'
-          }
-        ]
-      },
-      {
-        title: 'Khang',
-        components: [
-          {
-            title: 'abc 1',
-            link: '/abc'
-          },
-          {
-            title: 'bcd 1',
-            link: '/bcd'
-          },
-          {
-            title: 'cbd 1',
-            link: '/cbd'
-          }
-        ]
       }
     ]
   },
@@ -95,30 +61,6 @@ const listNavbarItem = [
     tooltip: ResourceNavbar.NavbarHome.Store.tooltip,
     link: '/store',
     elementIcon: 'map:store'
-  },
-  {
-    id: 9,
-    title: 'Bán hàng Online',
-    tooltip: ResourceNavbar.NavbarHome.Store.tooltip,
-    link: '',
-    elementIcon: 'map:store',
-    menuType: 1, // Bán hàng online
-    components: [
-      {
-        id: 9.1,
-        title: 'OCM',
-        tooltip: ResourceNavbar.NavbarHome.Store.tooltip,
-        link: '/ocm',
-        elementIcon: 'map:store'
-      },
-      {
-        id: 9.2,
-        title: 'Cửa hàng điện tử',
-        tooltip: ResourceNavbar.NavbarHome.Store.tooltip,
-        link: '/electronic',
-        elementIcon: 'map:store'
-      }
-    ]
   },
   {
     id: 6,
@@ -143,14 +85,6 @@ const listNavbarItem = [
   }
 ]
 
-onMounted(() => {
-  window.addEventListener('click', handleClosePopupContent)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('click', handleClosePopupContent)
-})
-
 /**Trạng thí đóng mở menu */
 let isCollapsed = ref(false)
 let activePopup = ref(null)
@@ -159,13 +93,6 @@ let menuItemRect = ref({})
 
 function toggleMenu() {
   isCollapsed.value = !isCollapsed.value
-}
-
-function handleClosePopupContent() {
-  if (activePopup && activePopup.value) {
-    activePopup.value = null
-    popupStyle.value = {}
-  }
 }
 
 function beforeEnter(el) {
@@ -193,8 +120,6 @@ function leave(el, done) {
  * Created By; DDKhang (17/08/2024)
  */
 function showPopup(event, id) {
-  // Ngăn sự kiện nổi bột ra ngoài sự kiện đóng của window
-  event.stopPropagation()
   // Toggle hiển thị popup
   if (activePopup && activePopup.value === id) {
     activePopup.value = null
@@ -220,65 +145,34 @@ function showPopup(event, id) {
   <nav :class="['leftMenu', { collapsed: isCollapsed }]">
     <ul class="list-nav">
       <li
-        class=""
+        class="nav-item"
         v-for="(navItem, index) in listNavbarItem"
         :key="index"
         @click="showPopup($event, navItem.id)"
       >
-        <!-- Menu riêng cho Bán hàng online -->
-        <div
-          v-if="
-            navItem && navItem.menuType === 1 && navItem.components && navItem.components.length
-          "
-          class=""
-        >
-          <div class="sale-online">
-            <div class="sale-online-title">{{ navItem.title }}</div>
-            <div class="" v-for="(item, i) in navItem.components" :key="i">
-              <router-link :to="item.link" class="nav-item-saleOnline">
-                <div class="nav__navItem-icon">
-                  <Icon :icon="navItem.elementIcon" color="white" width="24" height="24" />
-                </div>
-                <transition name="fade" @before-enter="beforeEnter" @enter="enter" @leave="leave">
-                  <div v-if="!isCollapsed" class="nav__navItem-title">{{ item.title }}</div>
-                </transition>
-              </router-link>
-            </div>
+        <router-link :to="navItem.link" class="nav__navItem">
+          <div class="nav__navItem-icon">
+            <Icon :icon="navItem.elementIcon" color="white" width="24" height="24" />
           </div>
-        </div>
-        <!-- Các trường hợp khác -->
-        <div v-else class="nav-item">
-          <router-link :to="navItem.link" class="nav__navItem">
-            <div class="nav__navItem-icon">
-              <Icon :icon="navItem.elementIcon" color="white" width="24" height="24" />
-            </div>
-            <transition name="fade" @before-enter="beforeEnter" @enter="enter" @leave="leave">
-              <div v-if="!isCollapsed" class="nav__navItem-title">{{ navItem.title }}</div>
-            </transition>
-          </router-link>
+          <transition name="fade" @before-enter="beforeEnter" @enter="enter" @leave="leave">
+            <div v-if="!isCollapsed" class="nav__navItem-title">{{ navItem.title }}</div>
+          </transition>
+        </router-link>
 
-          <MISAPopupMenuItem
-            v-if="
-              activePopup &&
-              activePopup === navItem.id &&
-              navItem.children &&
-              navItem.children.length
-            "
-            :top="menuItemRect.top"
-            :right="menuItemRect.right"
-            class="popup-menu"
-          >
-            <div class="popup-menu-item" v-for="(item, index) in navItem.children" :key="index">
-              <div class="menu-item-title">
-                <div class="color-top"></div>
-                <p class="title">{{ item.title }}</p>
-              </div>
-              <ul class="menu-item-child-list" v-for="(child, i) in item.components" :key="i">
-                <li class="menu-item-child">{{ child.title }}</li>
-              </ul>
-            </div>
-          </MISAPopupMenuItem>
-        </div>
+        <MISAPopupMenuItem
+          v-if="
+            activePopup && activePopup === navItem.id && navItem.children && navItem.children.length
+          "
+          :top="menuItemRect.top"
+          :right="menuItemRect.right"
+        >
+          <div class="" v-for="(item, index) in navItem.children" :key="index">
+            <div class="">{{ item.title }}</div>
+            <ul class="" v-for="(child, i) in item.components" :key="i">
+              <li>{{ child.title }}</li>
+            </ul>
+          </div>
+        </MISAPopupMenuItem>
       </li>
     </ul>
     <!-- Nút thu gọn -->
@@ -307,7 +201,7 @@ nav.collapsed {
 
 .list-nav {
 }
-.collapsed li .nav__navItem-title {
+.collapsed li.nav__navItem-title {
   transition: padding 0.3s ease;
 }
 
@@ -316,15 +210,6 @@ nav.collapsed {
 .nav-item:hover {
   background-color: var(--color-navbar-hover-primary);
   transition: all 0.2s;
-}
-
-.nav-item-saleOnline:hover {
-  background-color: var(--color-navbar-hover-primary);
-  transition: all 0.2s;
-}
-
-.nav-item-saleOnline:hover .nav-item {
-  background-color: transparent;
 }
 
 .nav__navItem {
@@ -337,24 +222,6 @@ nav.collapsed {
   color: var(--color-text-white);
   border-bottom: 1px solid #016087;
   border-top: 1px solid #038ac1;
-}
-.nav-item-saleOnline {
-  display: flex;
-  column-gap: 10px;
-  height: 38px;
-  align-items: center;
-  text-decoration: none;
-  color: var(--color-text-white);
-}
-
-.sale-online {
-  padding: 5px;
-  border: 1px solid black;
-  margin: 5px;
-  border-radius: 8px;
-  &-title {
-    font-size: 16px;
-  }
 }
 
 .nav__navItem-icon {
@@ -401,56 +268,5 @@ nav.collapsed {
 
 .leftMenu.collapsed li .nav__navItem-title {
   opacity: 0;
-}
-
-.popup-menu {
-  padding: 10px;
-  max-height: 500px;
-  max-width: 400px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-
-  &-item {
-    margin: 5px;
-  }
-
-  .menu-item-title {
-    display: flex;
-    width: 100%;
-
-    .color-top {
-      width: 5px;
-      background-color: red;
-    }
-
-    .title {
-      padding: 0 5px 0 5px;
-      background-color: rgb(74, 74, 250);
-      color: white;
-      width: 100%;
-    }
-  }
-
-  .menu-item-child-list {
-    list-style: none;
-    padding-left: 10px;
-  }
-  .menu-item-child {
-    padding: 0 5px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    transition: all 0.2s ease-in;
-    border-radius: 5px;
-    min-width: 100px;
-  }
-
-  .menu-item-child:hover {
-    cursor: pointer;
-    background-color: rgb(74, 74, 250);
-    color: white;
-  }
 }
 </style>
